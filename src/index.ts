@@ -8,7 +8,7 @@ import { ICellModel, Cell } from "@jupyterlab/cells";
 import { DocumentRegistry } from "@jupyterlab/docregistry";
 import { Kernel, KernelMessage, Session } from "@jupyterlab/services"
 import { toolbox, encodeWorkspace, decodeWorkspace, UpdateAllIntellisense_Python, setNotebooksInstance as notebooks_1 } from './toolboxPython';
-import { toolbox as toolbox_r, UpdateAllIntellisense_R, setNotebooksInstance as setNotebooksInstance_R, DoFinalInitialization } from './ToolboxR';
+import { toolbox as toolbox_r, UpdateAllIntellisense_R, setNotebooksInstance as setNotebooksInstance_R, DoFinalInitialization } from './ToolboxR'
 import * as Blockly from 'blockly/core';
 import * as libraryBlocks from 'blockly/blocks';
 import { pythonGenerator } from 'blockly/python';
@@ -36,7 +36,7 @@ class BlocklyWidget extends Widget {
     setNotebooksInstance_R(this.notebooks);
 
     this.div = document.createElement("div");
-    this.div.id = "blocklyDivPython";
+    this.div.id = "blocklyContainer";
     this.node.appendChild(this.div);
 
     const buttonDiv: HTMLElement = document.createElement("div");
@@ -87,7 +87,7 @@ class BlocklyWidget extends Widget {
   onAfterAttach(): void{
     libraryBlocks;
     const this$: BlocklyWidget = this;
-    BlocklyWidget__set_workspace(this$, Blockly.inject("blocklyDivPython", {
+    BlocklyWidget__set_workspace(this$, Blockly.inject("blocklyContainer", {
       toolbox: toolbox,
     }));
     console.log("jupyterlab_blockly_extension_python: blockly palette initialized");
@@ -103,13 +103,13 @@ class BlocklyWidget extends Widget {
     }
     BlocklyWidget__get_workspace(this$).removeChangeListener(logListener);
     BlocklyWidget__get_workspace(this$).addChangeListener(logListener);
-    DoFinalInitialization(BlocklyWidget__get_workspace(this$) as Blockly.WorkspaceSvg);
+    // DoFinalInitialization(BlocklyWidget__get_workspace(this$) as Blockly.WorkspaceSvg);
   }
   onResize = (msg: Widget.ResizeMessage): void => {
     let copyOfStruct: number = msg.width;
     let copyOfStruct_1: number = msg.width;
     const this$: BlocklyWidget = this;
-    const blocklyDiv: HTMLElement = document.getElementById("blocklyDivPython")!;
+    const blocklyDiv: HTMLElement = document.getElementById("blocklyContainer")!;
     const buttonDiv: HTMLElement = document.getElementById("buttonDivPython")!;
     const adjustedHeight: number = msg.height - 30;
     blocklyDiv.setAttribute("style", ((("width: " + ((copyOfStruct = msg.width, copyOfStruct.toString()))) + "px; height: ") + (adjustedHeight).toString()) + "px");
@@ -410,7 +410,7 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
     if (matchValue == null || matchValue == undefined) {}
     else {
       const kernel: Kernel.IKernelConnection = matchValue;
-      changeWidgetGenerator(this, kernel);
+      updateBlocklyGenerator(this, kernel);
       if (kernel.name.indexOf("python") >= 0 || kernel.name.indexOf("ir") >= 0) {
         const ikernel = kernel as Kernel.IKernelConnection;
         ikernel.iopubMessage.connect(BlocklyWidget__get_onKernelExecuted(widget), widget);
@@ -425,25 +425,32 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
   }
 };
 
-export function changeWidgetGenerator(widget: BlocklyWidget, kernel: Kernel.IKernelConnection){
-  if(kernel.name == "python3"){
-    widget.generator = pythonGenerator;
-    const div = document.getElementById('blocklyDivPython');
-    div!.textContent  = "";
-    BlocklyWidget__set_workspace(widget, Blockly.inject("blocklyDivPython", {
-      toolbox: toolbox,
-    }));
-    console.log('Blockly generator switched to Python.');
-  } else if(kernel.name == 'ir'){
-    widget.generator = RGenerator;
-    const div = document.getElementById('blocklyDivPython');
-    div!.textContent  = "";
-    BlocklyWidget__set_workspace(widget, Blockly.inject("blocklyDivPython", {
-      toolbox: toolbox_r,
-    }));
-    console.log('Blockly generator switched to R.');
+export function updateBlocklyGenerator(widget: BlocklyWidget, kernel: Kernel.IKernelConnection){
+  const blocklyContainer = document.getElementById('blocklyContainer');
+  const generator = kernel.name == 'python3' ? pythonGenerator : RGenerator;
+  const toolboxConfig = kernel.name == 'python3' ? toolbox : toolbox_r;
+
+  if (blocklyContainer) {
+    blocklyContainer.textContent = "";
+  } else {
+    console.error(`Element with ID blocklyContainer not found.`);
+    return;
   }
-}
+
+  widget.generator = generator;
+  BlocklyWidget__set_workspace(widget, Blockly.inject("blocklyContainer", { toolbox: toolboxConfig }));
+
+  // final initialization for the R workspace
+  if (kernel.name == 'ir') {
+    const workspace = BlocklyWidget__get_workspace(widget);
+    if (workspace) {
+      DoFinalInitialization(workspace as Blockly.WorkspaceSvg);
+    } else {
+      console.error('Workspace not found.');
+    }
+  }
+  console.log(`Blockly generator switched to ${kernel.name == 'python3' ? 'Python' : 'R'}.`);
+};
 
 export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean{
   const blocklyWidget: BlocklyWidget = this;
@@ -458,7 +465,7 @@ export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPane
     const kernel: Kernel.IKernelConnection | null | undefined = notebook.sessionContext.session?.kernel;
     const kernelDisplayName = notebook.sessionContext.kernelDisplayName;
     if(kernel && (kernelDisplayName.includes('Python') || kernelDisplayName == 'R')){
-      changeWidgetGenerator(this, kernel);
+      updateBlocklyGenerator(this, kernel);
     }
 
     notebook.sessionContext.kernelChanged.connect(onKernelChanged, blocklyWidget);
@@ -472,7 +479,7 @@ export function runCommandOnNotebookChanged (this: any, sender: IWidgetTracker<N
   if (matchValue == null) {}
   else {
     console.log("jupyterlab_blockly_extension_python: notebook changed, autorunning blockly python command");
-    appContext.commands.execute("blockly_python:open");
+    appContext.commands.execute("blockly:open");
   }
   return true;
 };
@@ -484,19 +491,19 @@ async function activate(app: JupyterFrontEnd, palette: ICommandPalette, notebook
   let widget: MainAreaWidget<any> = createMainAreaWidget(blocklyWidget);
 
   const tracker: WidgetTracker<MainAreaWidget<any>> = new WidgetTracker({
-    namespace: "blockly_python",
+    namespace: "blockly",
   });
 
   if(restorer){
     restorer.restore(tracker, {
-      command: "blockly_python:open",
-      name: (): string => "blockly_python",
+      command: "blockly:open",
+      name: (): string => "blockly",
     });
   };
 
   notebooks.currentChanged.connect(onNotebookChanged, blocklyWidget);
 
-  app.commands.addCommand("blockly_python:open", {
+  app.commands.addCommand("blockly:open", {
     label: 'Blockly',
     execute: (): void => {
       if (!widget || widget.isDisposed) {
@@ -510,7 +517,7 @@ async function activate(app: JupyterFrontEnd, palette: ICommandPalette, notebook
   } as CommandRegistry.ICommandOptions);
 
   palette.addItem({
-    command: "blockly_python:open",
+    command: "blockly:open",
     category: "Blockly",
   });
 
