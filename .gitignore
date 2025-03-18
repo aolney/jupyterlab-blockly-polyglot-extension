@@ -123,3 +123,6 @@ dmypy.json
 
 # Yarn cache
 .yarn/
+
+.virtual_documents/
+.dev_test/

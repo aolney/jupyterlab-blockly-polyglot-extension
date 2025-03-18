@@ -13,4 +13,10 @@ dependencies:
   - copier=9
   - jinja2-time
   - certifi
+  - jupyter-lsp-python
+  - jupyterlab-lsp
+  - scikit-learn=1.4.2
+  - anywidget
+  - plotly=5.22.0
+  - pandas=2.2.2
 prefix: /z/aolney/software/miniconda3/envs/dw-jl-saturn
