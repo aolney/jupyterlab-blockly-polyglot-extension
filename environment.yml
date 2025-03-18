@@ -1,0 +1,16 @@
+name: dw-jl-saturn
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10.6
+  - jupyterlab=4.1.8
+  - ca-certificates
+  - openssl
+  - nodejs=20
+  - git
+  - copier=9
+  - jinja2-time
+  - certifi
+prefix: /z/aolney/software/miniconda3/envs/dw-jl-saturn
