@@ -6,6 +6,14 @@
 
 A JupyterLab extension implementing a Blockly palette for multiple programming languages.
 
+Data science training materials in Python using this extension are [here](https://github.com/memphis-iis/datawhys-content-notebooks-python) and matched versions for R are [here](https://github.com/memphis-iis/datawhys-content-notebooks-r).
+
+The following query string parameters enable functionality that is useful for classroom instruction and/or research:
+
+- bl=py forces the extension to display on load (it is already active)
+- log=xxx specifies a url for a logging endpoint (e.g. https://yourdomain.com/log)
+- id=xxx adds an identifier for logging
+
 ## Requirements
 
 - JupyterLab >= 4.0.0
@@ -28,9 +36,27 @@ pip uninstall jupyterlab_blockly_polyglot_extension
 
 ## Contributing
 
+- Andrew Olney
+- Luiz Barboza
+
 ### Development install
 
-Note: You will need NodeJS to build the extension package.
+Creating a virtual environment is recommended:
+
+```
+    curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+    bash Miniforge3-$(uname)-$(uname -m).sh
+
+    # edit the environment.yml file to change the environment name as you like
+
+    mamba env create -f environment.yml
+
+    /home/ubuntu/miniforge3/bin/mamba init
+
+    mamba activate <NAME>
+```
+
+**Note:** This extension is designed to use a language server. It will work without a language server, but functionality will be reduced. See [here](https://github.com/jupyter-lsp/jupyterlab-lsp) to install language servers for the languages you want to use.
 
 The `jlpm` command is JupyterLab's pinned version of
 [yarn](https://yarnpkg.com/) that is installed with JupyterLab. You may use
@@ -55,6 +81,8 @@ jlpm watch
 # Run JupyterLab in another terminal
 jupyter lab
 ```
+
+*The watch.sh script runs JupyterLab in watch mode with the Chrome browser*
 
 With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
 
