@@ -49,7 +49,7 @@ Creating a virtual environment is recommended:
     curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
     bash Miniforge3-$(uname)-$(uname -m).sh
 
-    # edit the environment.yml file to change the environment name as you like
+    !!! Edit the environment.yml file to change the environment name as you like !!!
 
     mamba env create -f environment.yml
 
@@ -61,8 +61,8 @@ Creating a virtual environment is recommended:
 **Note:** This extension is designed to use a language server. It will work without a language server, but functionality will be reduced. See [here](https://github.com/jupyter-lsp/jupyterlab-lsp) to install language servers for the languages you want to use.
 
 The `jlpm` command is JupyterLab's pinned version of
-[yarn](https://yarnpkg.com/) that is installed with JupyterLab. You may use
-`yarn` or `npm` in lieu of `jlpm` below.
+[yarn](https://yarnpkg.com/) that is installed with JupyterLab. You *may* use
+`yarn` or `npm` in lieu of `jlpm` below, but don't do it unless you *really* know what you're doing.
 
 ```bash
 # Clone the repo to your local environment

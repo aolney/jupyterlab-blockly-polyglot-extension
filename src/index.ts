@@ -4,13 +4,24 @@ import { INotebookTracker, NotebookPanel } from "@jupyterlab/notebook";
 import { Cell } from "@jupyterlab/cells";
 import * as Blockly from 'blockly/core';
 import { ICommandPalette, MainAreaWidget, IWidgetTracker, ISessionContext, WidgetTracker } from '@jupyterlab/apputils';
-// import { IStateDB } from "@jupyterlab/statedb";
-// import * as notebook from "@jupyterlab/notebook";
 import * as cells from "@jupyterlab/cells";
 import { ICellModel } from "@jupyterlab/cells";
 import { Kernel, Session, KernelMessage } from "@jupyterlab/services";
 import { DocumentRegistry } from "@jupyterlab/docregistry";
 import { CommandRegistry } from "@lumino/commands";
+
+// TODO registry - REFACTORING TOOLBOX FIRST
+// Needs to map widget kernel state to 
+// toolbox
+// generator
+// 
+
+
+
+// type LanguageRegistryEntry = {
+
+// }
+
 
 // TODO: seems like logging is not wired up throughout
 
