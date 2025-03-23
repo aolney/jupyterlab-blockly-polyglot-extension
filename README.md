@@ -18,6 +18,8 @@ The following query string parameters enable functionality that is useful for cl
 
 - JupyterLab >= 4.0.0
 
+*Later versions of JupyterLab changed the command UI. See [here](https://jupyterlab.readthedocs.io/en/stable/user/commands.html) for the options to launch the extension*
+
 ## Install
 
 To install the extension, execute:

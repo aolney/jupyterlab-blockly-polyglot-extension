@@ -19,4 +19,5 @@ dependencies:
   - anywidget
   - plotly=5.22.0
   - pandas=2.2.2
-prefix: /z/aolney/software/miniconda3/envs/dw-jl-saturn
+  - pip
+
