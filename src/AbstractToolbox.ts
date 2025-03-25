@@ -45,102 +45,112 @@ class IntellisenseVariable{
   /**
    * Base class for toolboxes. Implements common functionality.
    */
-  export abstract class AbstractToolbox {
+export abstract class AbstractToolbox {
 
-      notebooks: INotebookTracker | null = null;
+  /**
+   * We need a reference to the notebook to get the correct kernel, which we need for intellisense
+   */
+  notebooks: INotebookTracker | null = null;
+  /**
+   * Generator converts blocks to code; will be set by a language specific method
+   */
+  generator : Blockly.CodeGenerator | null = null;
+  /**
+   * Cache intellisense requests. Keyed on variable name
+   */
+  intellisenseLookup: Map<string, IntellisenseVariable> = new Map<string, IntellisenseVariable>([]);
+  /**
+   * Annotation for selecting property intelliblocks from Blockly. Probably needs to be set by subclasses for their language suffix
+   */
+  intelliblockPropertyLabel = "varGetProperty"
+  /**
+   * Annotation for selecting method intelliblocks from Blockly. Probably needs to be set by subclasses for their language suffix
+   */
+  intelliblockMethodLabel = "varDoMethod"
+  /**
+   * Annotation for selecting constructor intelliblocks from Blockly. Probably needs to be set by subclasses for their language suffix
+   */
+  intelliblockConstructorLabel = "varCreateObject"
 
-      /**
-       * Cache intellisense requests. Keyed on variable name
-       */
-      intellisenseLookup: Map<string, IntellisenseVariable> = new Map<string, IntellisenseVariable>([]);
-      /**
-       * Annotation for selecting property intelliblocks from Blockly. Probably needs to be set by subclasses for their language suffix
-       */
-      intelliblockPropertyLabel = "varGetProperty"
-      /**
-       * Annotation for selecting method intelliblocks from Blockly. Probably needs to be set by subclasses for their language suffix
-       */
-      intelliblockMethodLabel = "varDoMethod"
-      /**
-       * Annotation for selecting constructor intelliblocks from Blockly. Probably needs to be set by subclasses for their language suffix
-       */
-      intelliblockConstructorLabel = "varCreateObject"
+  /**
+   * Determine if entity is a function using inspection info; language specific
+   * @param info 
+   */
+  abstract isFunction( query: string, info : string) : boolean;
+  /**
+   * Determine if entity is a class using inspection info; language specific
+   * @param info 
+   */
+  abstract isClass( info :string) : boolean;
+  /**
+   * String used as a separator in scope/namespace; language specific
+   * Examples: Python uses "." between class and methods/properties/etc, but R uses "::" between a namespace/package and a function/element in that namespace/package
+   */
+  abstract dotString(): string;
+  /**
+   * Get completions for a list of children. Filters completions in a language specific way
+   * @param parent
+   * @param children 
+   */
+  abstract GetSafeChildCompletions(parent: IntellisenseEntry, children : string[] ) : string[]
+  /**
+   * Get inspections for a list of children. Different langauges may need different error handling for this step
+   * @param children 
+   */
+  abstract GetChildrenInspections(parent: IntellisenseEntry,  children : string[] ) : Promise<string>[]
+  /**
+   * Set up the language specific generator. Needed for adding new blocks to the generator in language subclasses
+   */
+  abstract InitializeGenerator() : void;
 
-      /**
-       * Determine if entity is a function using inspection info; language specific
-       * @param info 
-       */
-      abstract isFunction( info : string) : boolean;
-      /**
-       * Determine if entity is a class using inspection info; language specific
-       * @param info 
-       */
-      abstract isClass( info :string) : boolean;
-      /**
-       * String used as a separator in scope/namespace; language specific
-       * Examples: Python uses "." between class and methods/properties/etc, but R uses "::" between a namespace/package and a function/element in that namespace/package
-       */
-      abstract dotString(): string;
-      /**
-       * Get completions for a list of children. Filters completions in a language specific way
-       * @param parent
-       * @param children 
-       */
-      abstract GetSafeChildCompletions(parent: IntellisenseEntry, children : string[] ) : string[]
-      /**
-       * Get inspections for a list of children. Different langauges may need different error handling for this step
-       * @param children 
-       */
-      abstract GetChildrenInspections(parent: IntellisenseEntry,  children : string[] ) : Promise<string>[]
+  /**
+   * Encode the current Blockly workspace as an XML string
+   * @returns 
+   */
+  EncodeWorkspace(): string {
+      const xml: Element = Blockly.Xml.workspaceToDom(Blockly.getMainWorkspace());
+      return Blockly.Xml.domToText(xml);
+  };
 
-      /**
-       * Encode the current Blockly workspace as an XML string
-       * @returns 
-       */
-      EncodeWorkspace(): string {
-          const xml: Element = Blockly.Xml.workspaceToDom(Blockly.getMainWorkspace());
-          return Blockly.Xml.domToText(xml);
-      };
+  /**
+   * Decode an XML string and load the represented blocks into the Blockly workspace
+   * @param xmlText 
+   */
+  DecodeWorkspace(xmlText: string): void {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+      const xmlElement = xmlDoc.documentElement;
+      Blockly.Xml.domToWorkspace(xmlElement, Blockly.getMainWorkspace() as Blockly.WorkspaceSvg);
+  }
 
-      /**
-       * Decode an XML string and load the represented blocks into the Blockly workspace
-       * @param xmlText 
-       */
-      DecodeWorkspace(xmlText: string): void {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
-          const xmlElement = xmlDoc.documentElement;
-          Blockly.Xml.domToWorkspace(xmlElement, Blockly.getMainWorkspace() as Blockly.WorkspaceSvg);
+  UpdateAllIntellisense(): void {
+      const workspace: Blockly.Workspace = Blockly.getMainWorkspace();
+      
+      const blocks: Blockly.Block[] = workspace.getBlocksByType(this.intelliblockPropertyLabel, false);
+      workspace.getBlocksByType(this.intelliblockMethodLabel, false).forEach(block => blocks.push(block));
+      
+      blocks.forEach((block: any) => {
+          block.updateIntellisense(block, null, ((varName: string): string[][] => this.requestAndStubOptions(block, varName)));
+      });
+
+      (workspace as Blockly.WorkspaceSvg).registerToolboxCategoryCallback(
+          'VARIABLE', this.flyoutCategoryBlocks);
+  }
+
+  requestAndStubOptions(block: Blockly.Block, varName: string): string[][] {
+      if ((varName !== "") && !block.isInFlyout) {
+          this.RequestIntellisenseVariable(block, varName);
       }
-
-      UpdateAllIntellisense(): void {
-          const workspace: Blockly.Workspace = Blockly.getMainWorkspace();
-          
-          const blocks: Blockly.Block[] = workspace.getBlocksByType(this.intelliblockPropertyLabel, false);
-          workspace.getBlocksByType(this.intelliblockMethodLabel, false).forEach(block => blocks.push(block));
-          
-          blocks.forEach((block: any) => {
-              block.updateIntellisense(block, null, ((varName: string): string[][] => this.requestAndStubOptions(block, varName)));
-          });
-
-          (workspace as Blockly.WorkspaceSvg).registerToolboxCategoryCallback(
-              'VARIABLE', this.flyoutCategoryBlocks);
+      if (block.isInFlyout) {
+          return [[" ", " "]];
       }
-
-      requestAndStubOptions(block: Blockly.Block, varName: string): string[][] {
-          if ((varName !== "") && !block.isInFlyout) {
-              this.RequestIntellisenseVariable(block, varName);
-          }
-          if (block.isInFlyout) {
-              return [[" ", " "]];
-          }
-          else if ((varName !== "") && this.intellisenseLookup.has(varName)) {
-              return [["!Waiting for kernel to respond with options.", "!Waiting for kernel to respond with options."]];
-          }
-          else {
-              return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
-          }
+      else if ((varName !== "") && this.intellisenseLookup.has(varName)) {
+          return [["!Waiting for kernel to respond with options.", "!Waiting for kernel to respond with options."]];
       }
+      else {
+          return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
+      }
+  }
   
   /**
    * Request an intellisense variable. Complications arise from caching (which is problematic if the variable changes types or is otherwise redefined) and our UI decision to disambiguate this.dotString() into functions/methods, properties, and constructors (depending on language). 
@@ -152,7 +162,7 @@ class IntellisenseVariable{
       // start by inspecting the parent 
       this.GetKernelInspection(parentName).then((parentInspection: string) => {
           // process the parent information
-          const parent: IntellisenseEntry = new IntellisenseEntry(parentName, parentInspection, this.isFunction(parentInspection), this.isClass(parentInspection));
+          const parent: IntellisenseEntry = new IntellisenseEntry(parentName, parentInspection, this.isFunction(parentName,parentInspection), this.isClass(parentInspection));
 
           // Assume we need to get children
           let shouldGetChildren: boolean = true;
@@ -191,7 +201,7 @@ class IntellisenseVariable{
                   if( results[index].status === "fulfilled") {
                     info = (results[index] as PromiseFulfilledResult<string>).value;
                     //TODO: R implementation asks for additional parameter; might be workaround
-                    isFunction = this.isFunction(info);
+                    isFunction = this.isFunction(parentName, info);
                     isClass = this.isClass(info);
                   } 
                   return new IntellisenseEntry(childCompletion, info, isFunction, isClass)}).sort((a, b) => (a.Name < b.Name ? -1 : 1));
@@ -212,6 +222,32 @@ class IntellisenseVariable{
         }).catch((error) => {
           console.log("Intellisense error getting inspection of intellisense variable candidate (parent) " + parentName, error);
         });
+  }
+
+
+  /**
+   * Wrap a promise inside another with a timeout in milliseconds
+   * https://github.com/JakeChampion/fetch/issues/175#issuecomment-216791333
+   * @param ms 
+   * @param promise 
+   * @returns 
+   */
+  timeoutPromise<T>(ms: number, promise: Promise<T>) {
+    return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+        reject(new Error("promise timeout"))
+    }, ms);
+    promise.then(
+        (res) => {
+        clearTimeout(timeoutId);
+        resolve(res);
+        },
+        (err) => {
+        clearTimeout(timeoutId);
+        reject(err);
+        }
+    );
+    })
   }
 
   /**
@@ -401,4 +437,244 @@ class IntellisenseVariable{
       }
       return xmlList;
   }
+
+  /**
+   * Properties for this intellisense variable
+   * @param memberSelectionFunction 
+   * @param varName 
+   * @returns 
+   */
+  getIntellisenseMemberOptions(memberSelectionFunction: ((arg0: IntellisenseEntry) => boolean), varName: string): string[][] {
+    //See if the variable is defined
+    const intellisense_variable: IntellisenseVariable | undefined = this.intellisenseLookup.get(varName);
+    //If it's defined
+    if (intellisense_variable != null) {
+      //if it is not a function and has child entries, filter those and return
+      if (!intellisense_variable.VariableEntry.isFunction && intellisense_variable.ChildEntries.length > 0) {
+        return intellisense_variable.ChildEntries.filter(memberSelectionFunction).map((ie: IntellisenseEntry) => [ie.Name, ie.Name]);
+      //if it is in the cache but undefined, return that message
+      } else if (intellisense_variable.VariableEntry.Info === "UNDEFINED") {
+        return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
+      //something's wrong, likely we have no properties to show
+      } else {
+        return [["!No properties available.", "!No properties available."]];
+      }
+    //it's not defined/ not in cache
+    } else {
+      return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
+    }
+  }
+
+  /**
+   * Get intellisense variable info to display in tooltip or elsewhere
+   * @param varName 
+   * @returns 
+   */
+  getIntellisenseVarTooltip(varName: string): string {
+    const intellisense_variable: IntellisenseVariable | undefined = this.intellisenseLookup.get(varName);
+    //if in cache/defined, return its info
+    if (intellisense_variable) {
+      return intellisense_variable.VariableEntry.Info;
+    } else {
+      return "!Not defined until you execute code.";
+    }
+  }
+
+  /**
+   * Get info for child/member of intellisense variable to display in tooltip or elsewhere
+   * @param varName 
+   * @param memberName 
+   * @returns 
+   */
+  getIntellisenseMemberTooltip(varName: string, memberName: string): string {
+    const intellisense_variable: IntellisenseVariable | undefined = this.intellisenseLookup.get(varName);
+  
+    //if in cache/defined, search for named child
+    if (intellisense_variable) {
+      const child: IntellisenseEntry | undefined = intellisense_variable?.ChildEntries.find(c => c.Name === memberName);
+  
+      //if found, return its info
+      if (child ) {
+        return child.Info;
+      } else {
+        return "!Not defined until you execute code.";
+      }
+    // parent not in cache
+    } else {
+      return "!Not defined until you execute code.";
+    }
+  }
+
+  /**
+   * Remove a field from a block safely, even if it doesn't exist
+   * @param block 
+   * @param fieldName 
+   * @param inputName 
+   */
+  SafeRemoveField(block: Blockly.Block, fieldName: string, inputName: string): void {
+    const field: Blockly.Field | null = block.getField(fieldName);
+    const input: Blockly.Input | null = block.getInput(inputName);
+    //if the field does not exist, do nothing
+    if (!field) {}
+    //if the input does not exist, give an error message
+    else if (!input) {
+      console.log(((("error removing (" + fieldName) + ") from block; input (") + inputName) + ") does not exist");
+    }
+    //both exist, perform the removal op
+    else {
+      input.removeField(fieldName);
+    }
+  }
+
+  /**
+   * Remove an input safely, even if it doesn't exist
+   * @param block 
+   * @param inputName 
+   */
+  SafeRemoveInput(block: Blockly.Block, inputName: string): void {
+    //if the input does not exist, do nothing
+    if (!block.getInput(inputName)) {}
+    //input exists, do the removal op
+    else {
+      block.removeInput(inputName);
+    }
+  }
+  // TODO: MAKE BLOCK THAT ALLOWS USER TO MAKE AN ASSIGNMENT TO A PROPERTY (SETTER)
+  // TODO: CHANGE OUTPUT CONNECTOR DEPENDING ON INTELLISENSE: IF FUNCTION DOESN'T HAVE AN OUTPUT, REMOVE CONNECTOR
+  /**
+   * Make a block that has an intellisense-populated member dropdown. The member type is property or method, defined by the filter function
+   * @param blockName 
+   * @param preposition 
+   * @param verb 
+   * @param memberSelectionFunction 
+   * @param hasArgs 
+   * @param hasDot 
+   */
+  makeMemberIntellisenseBlock(blockName: string, preposition: string, verb: string, memberSelectionFunction: ((arg0: IntellisenseEntry) => boolean), hasArgs: boolean, hasDot: boolean): void {
+    // Note the "blockName" given to these is hardcoded elsewhere, e.g. the toolbox and intellisense update functions
+    Blockly.Blocks[blockName] = {
+      //Get the user-facing name of the selected variable; on creation, defaults to created name
+      varSelectionUserName(block: Blockly.Block, selection: string): string {
+        const fieldVariable = block.getField("VAR") as Blockly.FieldVariable;
+        //Get the last var created. Insane but works because by default, the flyout specifically lists this var in the block. User then expects to change if needed
+        const lastVar: Blockly.VariableModel = block.workspace.getAllVariables().slice(-1)[0];
+        //Attempt to get XML serialized data
+        const dataString: string | null = block.data;
+        const data: string[] = dataString && dataString.indexOf(":") >= 0 ? dataString.split(":") : [""];
+
+        //if variable has been selected
+        if (selection) {
+          const options = fieldVariable.getOptions();
+          const matching_option = options.find((option: Blockly.MenuOption) => option[1] === selection);
+          //if we matched the selection to an option (not null), check if element 0 is string and return it if so, otherwise return ""
+          return matching_option ? (typeof matching_option[0] === 'string' ? matching_option[0] : "") : "";
+        } else {
+          //various error handling
+          //Previously we returned empty ""; now as a last resort we return the last var created
+          if( fieldVariable.getText() == "" && data[0] == "" ){
+            return lastVar.name;
+          //prefer XML data over last var when XML data exists
+          } else if( fieldVariable.getText() == "" &&  data[0] != null) {
+            return data[0];
+          //prefer current var name over all others when it exists
+          } else if(  fieldVariable.getText() != null ) {
+            fieldVariable.getText();
+          }
+        }
+      },
+      //back up the current member selection so it is not lost every time a cell is run
+      selectedMember: "",
+
+      //TODO stopped here
+      //https://github.com/aolney/jupyterlab-blockly-r-extension/blob/master/src/Toolbox.ts
+      //line 806
+
+      updateIntellisense(thisBlockClosure: any, selectedVarOption: string, optionsFunction: (varUserName: string) => string[][]){
+        const input: Blockly.Input | null = thisBlockClosure.getInput("INPUT");
+        SafeRemoveField(thisBlockClosure, "MEMBER", "INPUT");
+        SafeRemoveField(thisBlockClosure, "USING", "INPUT");
+        const varUserName: string = thisBlockClosure.varSelectionUserName(thisBlockClosure, selectedVarOption);
+        
+        const flatOptions: string[] = optionsFunction(varUserName).map(arr => arr[0]);
+  
+        const dataString: string = thisBlockClosure.data ? thisBlockClosure.data : "";      
+        if(input){
+          let customfield = new CustomFields.FieldFilter(dataString, flatOptions, function(this: any, newMemberSelectionIndex: any) {
+            const thisSearchDropdown: typeof CustomFields_1 = this;
+            const newMemberSelection: string = newMemberSelectionIndex === "" ? dataString : thisSearchDropdown.WORDS[newMemberSelectionIndex];        
+            thisSearchDropdown.setTooltip(getIntellisenseMemberTooltip(varUserName, newMemberSelection));          
+            let matchValue;
+            thisBlockClosure.selectedMember = (matchValue = [newMemberSelection.indexOf("!") === 0, this.selectedMember], matchValue[1] === "" ? newMemberSelection : matchValue[0] ? this.selectedMember : newMemberSelection);
+            if (varUserName !== "" && thisBlockClosure.selectedMember !== "") {
+              thisBlockClosure.data = thisBlockClosure.selectedMember;
+            }
+            return newMemberSelection;
+          })
+  
+          input.appendField(customfield, "MEMBER");
+        } 
+        if (thisBlockClosure.data === undefined || thisBlockClosure.data === null) {
+          thisBlockClosure.data = thisBlockClosure.selectedMember;
+        }
+        const memberField: Blockly.Field | null = thisBlockClosure.getField("MEMBER");
+        if(memberField){
+          memberField.setTooltip(getIntellisenseMemberTooltip(varUserName, memberField.getText()));
+        }
+        },
+        init: function(): void{
+          console.log(blockName + " init");
+          const input_1: Blockly.Input = this.appendDummyInput("INPUT");
+  
+          input_1.appendField(preposition).appendField(new Blockly.FieldVariable(
+            "variable name",
+            ((newSelection: string): any => {
+            this.updateIntellisense(this, newSelection, ((varName: string): string[][] => requestAndStubOptions_R(this, varName)));
+            return newSelection;
+            })
+          ) as Blockly.Field, "VAR").appendField(verb);
+  
+          this.updateIntellisense(this, null, ((varName_1: string): string[][] => requestAndStubOptions_R(this, varName_1)));
+  
+          this.setOutput(true);
+          this.setColour(230);
+          this.setTooltip("!Not defined until you execute code.");
+          this.setHelpUrl("");
+          if (hasArgs) {
+            this.appendDummyInput("EMPTY");
+            Blockly.Extensions.apply("intelliblockMutator", this, true);
+          }
+        },
+        onchange: function(e: Blockly.Events.BlockChange): void {
+          if ((this.workspace && !this.isInFlyout) && (e.group === "INTELLISENSE")) {
+            const data_1: string[] = this.data ? this.data.toString() : "";
+            this.updateIntellisense(this, null, ((varName_2: string): string[][] => getIntellisenseMemberOptions(memberSelectionFunction, varName_2)));
+            const memberField: Blockly.Field = this.getField("MEMBER");
+            if (data_1[1] !== "") {
+              memberField.setValue(data_1[1]);
+            }
+            const varName_3: string = this.varSelectionUserName(this, null);
+            this.setTooltip(getIntellisenseVarTooltip(varName_3));
+          }
+        },
+    };
+    RGenerator[blockName] = ((block: any): string[] => {
+      const varName: string = RGenerator.getVariableName(block.getFieldValue("VAR"));
+      const memberName: string = block.getFieldValue("MEMBER").toString();
+      let code = "";
+      if (memberName.indexOf("!") === 0) {
+        code = "";
+      } else if (hasArgs) {
+        const args: string[] = Array.from({ length: block.itemCount_ }, (_, i) => {
+          return RGenerator.valueToCode(block, "ADD" + i.toString(), RGenerator.ORDER_COMMA);
+        });
+        const cleanArgs: string = args.join(",");
+        code = varName + (hasDot ? "::" : "") + memberName + "(" + cleanArgs + ")";
+      } else {
+        code = varName + (hasDot ? "::" : "") + memberName;
+      }
+      return [code, RGenerator.ORDER_FUNCTION_CALL];
+    });
+  }
+  
+
 }
