@@ -1,7 +1,12 @@
 import { AbstractToolbox,IntellisenseEntry, IToolbox } from "./AbstractToolbox";
 import * as Blockly from 'blockly/core';
+import { pythonGenerator } from 'blockly/python';
 
 export class PythonToolbox extends AbstractToolbox implements IToolbox{
+
+    constructor(){
+        super();
+    }
 
     isFunction(query:string, info: string): boolean {
         return (info.includes("Signature:") && info.includes("function") ) || (info.includes("Signature:") && info.includes("method"));
@@ -31,6 +36,16 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox{
         // For Python we don't currently seem to have a problem with promises not returning
         const pr: Promise<string>[] = children.map((childCompletion: string, index: number) =>  this.GetKernelInspection(parent.Name + "." + childCompletion));
         return pr;
+    }
+
+    InitializeGenerator(): void {
+        //get generator from blockly
+        this.generator = pythonGenerator;
+
+        //make intellisense blocks
+        this.makeMemberIntellisenseBlock("varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
+        this.makeMemberIntellisenseBlock("varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
+        this.makeMemberIntellisenseBlock("varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);        
     }
 
     /**

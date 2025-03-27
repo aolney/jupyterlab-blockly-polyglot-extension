@@ -3,6 +3,10 @@ import * as Blockly from 'blockly/core';
 
 export class RToolbox extends AbstractToolbox implements IToolbox{
 
+    constructor(){
+        super(); 
+    }
+
     isFunction(query: string, info: string): boolean {
         //to handle both parent and children cases, we truncate namespace from the query
         const index: number = query.indexOf("::");
@@ -86,5 +90,15 @@ export class RToolbox extends AbstractToolbox implements IToolbox{
             }
             return blockList;
         });
+    }
+
+    InitializeGenerator(): void {
+
+        // TODO wire in R generator
+        // this.generator = pythonGenerator;
+
+        this.makeMemberIntellisenseBlock("varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
+        this.makeMemberIntellisenseBlock("varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);   
+
     }
 }
