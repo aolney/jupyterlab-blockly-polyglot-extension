@@ -62,9 +62,17 @@ export abstract class AbstractToolbox {
    */
   notebooks: INotebookTracker | null = null;
   /**
+   * Reference to the blockly workspace
+   */
+  workspace : Blockly.WorkspaceSvg | null = null;
+  /**
    * Generator converts blocks to code; will be set by a language specific method
    */
-  generator : IGenerator | null = null;
+  generator : IGenerator | null  = null;
+  /**
+   * Toolbox definition; defines the blocks available and how they appear in the blockly menu
+   */
+  abstract toolboxDefinition : object;
 
   /**
    * Cache intellisense requests. Keyed on variable name
@@ -83,7 +91,16 @@ export abstract class AbstractToolbox {
    */
   intelliblockConstructorLabel = "varCreateObject"
 
-  constructor(){
+  /**
+   * Intitialize using notebook kernel and blockly workspace; calls initialize generator
+   * @param notebooks 
+   * @param workspace 
+   */
+  constructor(notebooks:INotebookTracker,workspace:Blockly.WorkspaceSvg){
+
+    this.notebooks = notebooks;
+    this.workspace = workspace;
+
     this.InitializeGenerator();
 
     //register custom flyout for intelliblocks (VARIABLES category)
@@ -142,6 +159,9 @@ export abstract class AbstractToolbox {
       Blockly.Xml.domToWorkspace(xmlElement, Blockly.getMainWorkspace() as Blockly.WorkspaceSvg);
   }
 
+  /**
+   * Updated the intellisense options on all intelliblocks.
+   */
   UpdateAllIntellisense(): void {
       const workspace: Blockly.Workspace = Blockly.getMainWorkspace();
       
@@ -156,6 +176,12 @@ export abstract class AbstractToolbox {
           'VARIABLE', this.flyoutCategoryBlocks);
   }
 
+  /**
+   * Try to get intellsense options for a single block. Fail gracefully.
+   * @param block 
+   * @param varName 
+   * @returns 
+   */
   requestAndStubOptions(block: Blockly.Block, varName: string): string[][] {
       if ((varName !== "") && !block.isInFlyout) {
           this.RequestIntellisenseVariable(block, varName);
@@ -765,5 +791,31 @@ export abstract class AbstractToolbox {
     });   
   }
 
+  /**
+   * Given a list of blocks to ignore, grey out all other blocks. Provides hint to students on what blocks they need and what they can ignore
+   * @param ignore_blocks 
+   */
+  GreyOutBlocks(ignore_blocks : string[]):void {
+    // Originally I was thinking I'd get the blocks from blockly and then modify their color
+    // However, that is nonobvious. Instead it seems better just to reload them from the local definition
+
+    // if(this.workspace){
+    //   let toolbox = this.workspace.getToolbox() as Blockly.Toolbox;
+
+    //   for( let item of toolbox.getToolboxItems() ) {
+    //     item
+    //     //set color of all but no op blocks
+    //     // block.setColour(166);
   
+    //   }
+    //   // TODO provide toolbox def below
+    //   // this.workspace.updateToolbox()
+    // }
+
+    // TODO get the toolbox definition here (XML or JSON)
+    // TODO update the definition here
+    // TODO provide toolbox def below
+      // this.workspace.updateToolbox()
+   
+  }
 }
