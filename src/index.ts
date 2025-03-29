@@ -9,28 +9,11 @@ import { ICellModel } from "@jupyterlab/cells";
 import { Kernel, Session, KernelMessage } from "@jupyterlab/services";
 import { DocumentRegistry } from "@jupyterlab/docregistry";
 import { CommandRegistry } from "@lumino/commands";
-
-// TODO registry - REFACTORING TOOLBOX FIRST
-// Needs to map widget kernel state to 
-// toolbox
-// generator
-// 
-
-
-
-// type LanguageRegistryEntry = {
-
-// }
-
+import { IToolbox } from "./AbstractToolbox";
+import { PythonToolbox } from "./PythonToolbox";
+import { RToolbox } from "./RToolbox";
 
 // TODO: seems like logging is not wired up throughout
-
-// import toolbox functions here
-// TODO: make toolbox/generator selectable or discover from kernel
-// import { toolbox, encodeWorkspace, decodeWorkspace, setNotebooksInstance as notebooks_1, DoFinalInitialization, UpdateAllIntellisense_R } from "./Toolbox";
-
-// TODO import generator here
-// import { RGenerator } from './RGenerator';
 
 /**
  * BlocklyWidget is a wrapper for Blockly. It does all the integration between Blockly and Jupyter. Language specific issues are handled by respective geneators and toolboxes
@@ -43,7 +26,91 @@ export class BlocklyWidget extends Widget {
   /**
    * Blockly workspace (basically Blockly session state)
    */
-  workspace: Blockly.Workspace | null;
+  workspace: Blockly.WorkspaceSvg | null;
+  /**
+   * Toolbox defining most blockly behavior, including language specific behavior
+   */
+  toolbox:IToolbox | null;
+
+  /**
+   * Default toolbox definition - categories but no entries. Can't have empty initial toolbox due to Blockly bug
+   * https://groups.google.com/g/blockly/c/xgbXQ5YXjB4
+   */
+  toolboxDefinition = {
+    "kind": "categoryToolbox",
+    "contents": [
+        {
+            "kind": "CATEGORY",
+            "name": "IMPORT",
+            "colour": "255"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "FREESTYLE",
+            "colour": "290"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "COMMENT",
+            "colour": "%{BKY_COLOUR_HUE}"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "LOGIC",
+            "colour": "%{BKY_LOGIC_HUE}"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "LOOPS",
+            "colour": "%{BKY_LOOPS_HUE}"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "MATH",
+            "colour": "%{BKY_MATH_HUE}"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "TEXT",
+            "colour": "%{BKY_TEXTS_HUE}"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "LISTS",
+            "colour": "%{BKY_LISTS_HUE}"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "COLOUR",
+            "colour": "%{BKY_COLOUR_HUE}"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "CONVERSION",
+            "colour": "120"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "I/O",
+            "colour": "190"
+        },
+        {
+            "kind": "SEP"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "VARIABLES",
+            "colour": "%{BKY_VARIABLES_HUE}",
+            "custom": "VARIABLE"
+        },
+        {
+            "kind": "CATEGORY",
+            "name": "FUNCTIONS",
+            "colour": "%{BKY_PROCEDURES_HUE}",
+            "custom": "PROCEDURE"
+        }
+    ],
+};
   /**
    * Flag for  whether the widget is attached to Jupyter
    */
@@ -74,16 +141,10 @@ export class BlocklyWidget extends Widget {
     //listen for notebook cell changes
     this.notebooks.activeCellChanged.connect(this.onActiveCellChanged(), this);
 
-    // TODO see toolbox imports
-    // inject notebooks into toolbox
-    // notebooks_1(this.notebooks);
-
-    // TODO discover generator from kernel
-    // this.generator = RGenerator;
-
     this.lastCell = null;
     this.blocksInSyncWithXML = false;
     this.workspace = null;
+    this.toolbox = null;
     this.notHooked = true;
 
     //---------------------
@@ -139,33 +200,28 @@ export class BlocklyWidget extends Widget {
     buttonDiv.appendChild(syncCheckbox);
     buttonDiv.appendChild(syncCheckboxLabel);
 
-    // TODO remove cache; should not be needed with LSP...
-    // const cacheCheckbox: any = document.createElement("input");
-    // cacheCheckbox.setAttribute("type", "checkbox");
-    // cacheCheckbox.id = "cacheCheckboxPoly";
-    // cacheCheckbox.onchange = ((e: any): void => {
-    //   const url: string = window.location.href;
-    //   if ((e.currentTarget as any).checked) {
-    //     if (!(url.indexOf("workspaces/cache") >= 0)) {
-    //       const parts = url.split("/lab");
-    //       const newUrl = parts[0] + "/lab/workspaces/cache" + parts[1];
-    //       window.location.assign(newUrl);
-    //     }
-    //   }
-    //   else {
-    //     const baseUrl: string = url.slice(0, url.indexOf("/lab"));
-    //     window.location.assign(baseUrl + "/lab/workspaces/cache?reset");
-    //   }
-    // });
-    // cacheCheckbox.checked = true;
-    // cacheCheckbox.dispatchEvent(new Event("change"));
-    // const cacheCheckboxLabel: any = document.createElement("label");
-    // cacheCheckboxLabel.innerText = "Use cache";
-    // cacheCheckboxLabel.setAttribute("for", "cacheCheckboxPoly");
-    // buttonDiv.appendChild(cacheCheckbox);
-    // buttonDiv.appendChild(cacheCheckboxLabel);
-
     this.node.appendChild(buttonDiv);
+  }
+
+  /**
+   * A kind of registry/factory that returns the correct toolbox given the name of the kernel
+   * @param kernelName 
+   */
+  GetToolBox( kernelName : string) {
+    if( this.workspace ) {
+      switch(true){
+        //R kernel
+        case kernelName == "ir":
+          this.toolbox = new RToolbox(this.notebooks,this.workspace) as IToolbox;
+        // Python kernel
+        case kernelName.toLocaleLowerCase().includes("python"):
+          this.toolbox = new PythonToolbox(this.notebooks,this.workspace) as IToolbox;
+      }
+      //load the toolbox with blocks
+      if( this.toolbox ){
+        this.toolbox.UpdateToolbox();
+      }
+    }
   }
 
   /**
@@ -185,9 +241,8 @@ export class BlocklyWidget extends Widget {
    */
   AreBlocksSaved(): boolean {
     const cellSerializedBlocks: string | null = this.GetActiveCellSerializedBlockXML();
-    // TODO toolbox function
-    const workspaceSerializedBlocks = "" //encodeWorkspace();
-    if( cellSerializedBlocks == workspaceSerializedBlocks) {
+    const workspaceSerializedBlocks = this.toolbox?.EncodeWorkspace();
+    if( cellSerializedBlocks && cellSerializedBlocks == workspaceSerializedBlocks) {
       return true;
     } else {
       return false;
@@ -205,8 +260,7 @@ export class BlocklyWidget extends Widget {
           case "execute_input": {
               console.log(`jupyterlab_blockly_polyglot_extension: kernel '${sender.name}' executed code, updating intellisense`);
             // LogToServer(JupyterLogEntry082720_Create("execute-code", args.content.code));
-            // TODO toolbox function
-            // UpdateAllIntellisense_R();
+            this.toolbox?.UpdateAllIntellisense();
             break;
           }
           case "error": {
@@ -252,9 +306,8 @@ export class BlocklyWidget extends Widget {
           else {
             this.DeserializeBlocksFromXML();
           }
-          // TODO toolbox function
           //Update intellisense on blocks we just created
-          // UpdateAllIntellisense_R();
+          this.toolbox?.UpdateAllIntellisense();
         }
 
 
@@ -268,7 +321,10 @@ export class BlocklyWidget extends Widget {
    */
   onAfterAttach(): void {
     // Inject blockly into page. We do so without definiting the toolbox/palette b/c that will change with kernel
-    this.workspace = Blockly.inject("blocklyDivPoly");
+    // this.workspace = Blockly.inject("blocklyDivPoly");
+    // TODO STOPPED HERE: seems to be a problem updating the toolbox. Breakpoint the update and perhaps load the full definition at injection (and try to update later)
+    this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: this.toolboxDefinition});
+
     // TODO: move toolbox initialization elsewhere; should change with kernel
     // console.log("jupyterlab_blockly_polyglot_extension: blockly palette initialized");
 
@@ -286,8 +342,9 @@ export class BlocklyWidget extends Widget {
     };
     this.workspace.removeChangeListener(logListener);
     this.workspace.addChangeListener(logListener);
-    // TODO toolbox function
-    // DoFinalInitialization(this.workspace(this$) as Blockly.WorkspaceSvg);
+
+    // Do any toolbox initialization we had to defer until we were attached
+    this.toolbox?.DoFinalInitialization();
   }
 
   /**
@@ -330,15 +387,16 @@ GetActiveCellSerializedBlockXML(): string | null {
  * Render blocks to code and serialize blocks at the same time. Do error checking to prevent user error IF this action was user-initiated (not autosave).
  */
 BlocksToCode(cell : Cell | null, userInitated: boolean = false): void {
-  const code: string = this.generator.workspaceToCode(this.workspace);
+  const code: string = this.toolbox?.BlocksToCode() ?? "";
+  //this.generator.workspaceToCode(this.workspace);
   if (cell != null) {
     // if user called blocks to code on a markdown cell, complain
     if( userInitated && cells.isMarkdownCellModel(cell.model) ) {
       window.alert("You are calling \'Blocks to Code\' on a MARKDOWN cell. Select an empty CODE cell and try again.");
     // if this is a code cell, do blocks to code
     } else if(cells.isCodeCellModel(cell.model)) {
-      // TODO toolbox function
-      // this$.notebooks.activeCell.model.sharedModel.setSource(code + "\n#" + encodeWorkspace());
+      let cell_contents = code + "\n#" + this.toolbox?.EncodeWorkspace();
+      this.notebooks.activeCell?.model.sharedModel.setSource( cell_contents );
       console.log(("jupyterlab_blockly_polyglot_extension: wrote to cell\n" + code) + "\n");
       // LogToServer(JupyterLogEntry082720_Create("blocks-to-code", this$.notebooks.activeCell.model.value.text));
       this.blocksInSyncWithXML = true;
@@ -354,15 +412,15 @@ BlocksToCode(cell : Cell | null, userInitated: boolean = false): void {
  */
 DeserializeBlocksFromXML(): void {
   if (this.notebooks.activeCell) {
-    const xmlOption = this.GetActiveCellSerializedBlockXML();
-    if( xmlOption != null ){
+    const xmlString = this.GetActiveCellSerializedBlockXML();
+    if( xmlString != null ){
       try {
         //clear existing blocks so we don't junk up the workspace
         this.clearBlocks();
-        // TODO toolbox function
-        // decodeWorkspace(xmlString);
+
+        this.toolbox?.DecodeWorkspace(xmlString)
         // TODO delete the following line
-        console.log(xmlOption);
+        console.log(xmlString);
         // LogToServer(JupyterLogEntry082720_Create("xml-to-blocks", xmlString));
         } catch (e: any) {
           window.alert("Unable to perform \'Code to Blocks\': XML is either invald or renames existing variables. Specific error message is: " + e.message);
@@ -373,50 +431,7 @@ DeserializeBlocksFromXML(): void {
         console.log("jupyterlab_blockly_polyglot_extension: unable to decode blocks, active cell is null");
       }
     }
-};
-
-// Refactoring; seems overly complex and does not really implement autosave
-// /**
-//  * Auto-save: Render blocks to code if we are on a code cell, we've previously saved to it, and have any blocks on the workspace
-//  */
-// RenderCodeToLastCell(): void {
-//   let model: ICellModel;
-//   const code: string = this.generator.workspaceToCode(this.workspace);
-//   if (this.lastCell) {
-//     if (this.lastCell.model) {
-//       if ((model = this.lastCell.model, cells.isCodeCellModel(model))) {
-//         if ((() => {
-//           try {
-//             const xmlString: string = this.lastCell.model.sharedModel.getSource();
-//             if (xmlString.indexOf("xmlns") >= 0) {
-//               const regex = /(<xml[\s\S]+<\/xml>)/;
-//               let xmlStringOption = xmlString.match(regex);
-//               if (xmlStringOption && xmlStringOption[0]) {
-//                 return xmlStringOption[0]
-//               }
-//             }
-//           }
-//           catch (matchValue: any) {
-//             return false;
-//           }
-//         })()) {
-//           // const workspace: Blockly.Workspace = this.workspace;
-//           const blocks: Blockly.Block[] = this.workspace?.getAllBlocks(false) ?? []
-//           if (blocks.length > 0) {
-//             // TODO toolbox function
-//             // this.lastCell.model.sharedModel.setSource(code + "\n#" + encodeWorkspace());
-//             console.log(("jupyterlab_blockly_polyglot_extension: wrote to active cell\n" + code) + "\n");
-//             // LogToServer(JupyterLogEntry082720_Create("blocks-to-code-autosave", this$.notebooks.activeCell.model.value.text));
-//           }
-//         }
-//       }
-//     }
-//   }
-//   else {
-//     console.log(("jupyterlab_blockly_polyglot_extension: no cell active, flushed instead of autosave\n" + code) + "\n");
-//   }
-// }
-
+  };
 
 } //end BlocklyWidget
 
@@ -469,7 +484,7 @@ export const runCommandOnNotebookChanged = function (this: any, sender: IWidgetT
 };
 
 /**
- * The kernel has changed. TODO handle kernel swapping. Make sure we are logging kernel messages
+ * The kernel has changed. Make sure we are logging kernel messages and load the appropriate langauge toolbox
  * @param this
  * @param sender 
  * @param args 
@@ -477,17 +492,23 @@ export const runCommandOnNotebookChanged = function (this: any, sender: IWidgetT
  */
 export function onKernelChanged(this: any, sender: ISessionContext, args: Session.ISessionConnection.IKernelChangedArgs): boolean {
   const widget: BlocklyWidget = this;
-  if (widget.notHooked) {
+  //NOTE: removing "notHooked" logic
+  // if (widget.notHooked) {
     if(sender.session?.kernel != null ) {
+      //listend for kernel messages
       sender.session.kernel.iopubMessage.connect(widget.onKernelExecuted(), widget);
       console.log("jupyterlab_blockly_polyglot_extension: Listening for kernel messages");
-      widget.notHooked = false;
+      //connect appropriate toolbox
+      widget.GetToolBox(sender.session.kernel.name);
+      console.log("jupyterlab_blockly_polyglot_extension: Attaching toolbox for " + `${sender.session.kernel.name}`);
+      
+      // widget.notHooked = false;
     }
     return true;
-  }
-  else {
-    return false;
-  }
+  // }
+  // else {
+  //   return false;
+  // }
 };
 
 /**

@@ -511,32 +511,39 @@ export class RToolbox extends AbstractToolbox implements IToolbox{
      * For R create the SPECIAL toolbox category
      * @param workspace 
      */
-    DoFinalInitialization(workspace: Blockly.WorkspaceSvg): void {
-        workspace.registerToolboxCategoryCallback("SPECIAL", (workspace: Blockly.Workspace): any[] => {
-            const blockList: any[] = [];
-            const label: any = document.createElement("label");
-            label.setAttribute("text", "Occassionally blocks appear here as you load libraries (e.g. %>%). See VARIABLES for most cases.");
-            void (blockList.push(label));
-            if (this.intellisenseLookup.has("dplyr")) {
-                const block: any = document.createElement("block");
-                block.setAttribute("type", "pipe_R");
-                void (blockList.push(block));
-            }
-            if (this.intellisenseLookup.has("ggplot2")) {
-                const block_1: any = document.createElement("block");
-                block_1.setAttribute("type", "ggplot_plus_R");
-                void (blockList.push(block_1));
-            }
-            return blockList;
-        });
+    DoFinalInitialization(): void {
+        if( this.workspace ){
+            this.workspace.registerToolboxCategoryCallback("SPECIAL", (workspace: Blockly.Workspace): any[] => {
+                const blockList: any[] = [];
+                const label: any = document.createElement("label");
+                label.setAttribute("text", "Occassionally blocks appear here as you load libraries (e.g. %>%). See VARIABLES for most cases.");
+                void (blockList.push(label));
+                if (this.intellisenseLookup.has("dplyr")) {
+                    const block: any = document.createElement("block");
+                    block.setAttribute("type", "pipe_R");
+                    void (blockList.push(block));
+                }
+                if (this.intellisenseLookup.has("ggplot2")) {
+                    const block_1: any = document.createElement("block");
+                    block_1.setAttribute("type", "ggplot_plus_R");
+                    void (blockList.push(block_1));
+                }
+                return blockList;
+            });
+        }
     }
 
     InitializeGenerator(): void {
-
+        //connect custom R generator
         this.generator = RGenerator;
 
+        //make intellisense blocks
         this.makeMemberIntellisenseBlock("varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
         this.makeMemberIntellisenseBlock("varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);   
+
+        //override default blockly functionality
+
+        //define new blocks
 
     }
 

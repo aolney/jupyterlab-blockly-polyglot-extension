@@ -14,7 +14,8 @@
  
 
 // AO: dependencies and exports for webpack
-import Blockly from 'blockly'; // { Block }
+// import Blockly from 'blockly'; // { Block } //2025-03-29: this was the old import but it broke with webpack
+import * as Blockly from 'blockly/core';
 
 export var CustomFields: any = CustomFields || {};
 

@@ -4,14 +4,17 @@ import { Kernel, KernelMessage } from "@jupyterlab/services";
 import { IRenderMime, MimeModel } from "@jupyterlab/rendermime";
 import { CustomFields } from "./SearchDropdown";
 
+// CustomFieldFilter
 /**
  * All language toolboxes must implement IToolbox. BlocklyWidget will call the functions in the interface. 
  */
 export interface IToolbox {
-    EncodeWorkspace():void;
+    EncodeWorkspace():string;
     DecodeWorkspace(xml:string):void;
     UpdateAllIntellisense():void;
-    DoFinalInitialization(workspace: Blockly.WorkspaceSvg): void;
+    BlocksToCode():string;
+    DoFinalInitialization(): void;
+    UpdateToolbox():void;
 }
 
 /**
@@ -21,6 +24,7 @@ export interface IGenerator {
   getVariableName(nameOrId: string): string;
   statementToCode(block: Blockly.Block, name: string): string;
   valueToCode(block: Blockly.Block, name: string, outerOrder: number): string;
+  workspaceToCode( workspace : Blockly.WorkspaceSvg ) : string;
 }
 // TODO: may not need IntellisenseEntry and related code with LSP
 
@@ -72,7 +76,7 @@ export abstract class AbstractToolbox {
   /**
    * Toolbox definition; defines the blocks available and how they appear in the blockly menu
    */
-  abstract toolboxDefinition : object;
+  abstract toolboxDefinition : Blockly.utils.toolbox.ToolboxDefinition;
 
   /**
    * Cache intellisense requests. Keyed on variable name
@@ -158,6 +162,20 @@ export abstract class AbstractToolbox {
       const xmlElement = xmlDoc.documentElement;
       Blockly.Xml.domToWorkspace(xmlElement, Blockly.getMainWorkspace() as Blockly.WorkspaceSvg);
   }
+
+  /**
+   * Return the code fro the blocks on the workspace, using the toolbox generator
+   * @returns 
+   */
+  BlocksToCode() : string {
+    if( this.generator && this.workspace ) {
+      return this.generator.workspaceToCode(this.workspace);
+    }
+    else {
+      return "";
+    }
+  }
+
 
   /**
    * Updated the intellisense options on all intelliblocks.
@@ -316,6 +334,7 @@ export abstract class AbstractToolbox {
     if( widget && kernel ){
       return new Promise<string>((resolve, reject) => {
         // request an inspection from the kernel
+        // @ts-ignore
         kernel.requestInspect({
           code: queryString,
           cursor_pos: queryString.length,
@@ -325,11 +344,13 @@ export abstract class AbstractToolbox {
           // the reply has some kind of funky ascii encoding
           const content = _arg.content;
           if ("found" in content && content.found) {
+            // @ts-ignore
             const mimeType: string | undefined = widget.content.rendermime.preferredMimeType(content.data);
             const model: MimeModel = new MimeModel({
               data: content.data,
             });
             if(mimeType){
+              // @ts-ignore
               const renderer: IRenderMime.IRenderer = widget.content.rendermime.createRenderer(mimeType);
               renderer.renderModel(model).then(() => {
                 resolve(renderer.node.innerText);
@@ -368,6 +389,7 @@ export abstract class AbstractToolbox {
       return new Promise<string[]>((resolve, reject) => {
         // setTimeout(() => {
           // request a completion from the kernel
+          // @ts-ignore
           kernel.requestComplete({
             code: queryString,
             cursor_pos: queryString.length,
@@ -633,9 +655,6 @@ export abstract class AbstractToolbox {
       //back up the current member selection so it is not lost every time a cell is run
       selectedMember: "",
 
-      //TODO stopped here
-      //https://github.com/aolney/jupyterlab-blockly-r-extension/blob/master/src/Toolbox.ts
-      //line 806
 
       updateIntellisense(block: any, selectedVarOption: string, optionsFunction: (varUserName: string) => string[][]){
         const input: Blockly.Input | null = block.getInput("INPUT");
@@ -659,37 +678,41 @@ export abstract class AbstractToolbox {
           defaultSelection = dataString.split(":")[1]
         }
         
-        if(input){
-          let customfield = new CustomFields.FieldFilter(defaultSelection, flatOptions, (thisBlock: any, newMemberSelectionIndex: any) => {
-            // cast 'thisBlock' to a search dropdown (see SearchDropdown.ts for CustomFields). we will also continue to use 'thisBlock' to refer to the block
-            const thisSearchDropdown: typeof CustomFields = thisBlock;
+        if(input ){ //&& CustomFields && Blockly){
+          // junk debug code to get CustomFields loaded but not do anything with it
+          // => mere loading triggers error
+          let TODO = CustomFields;
+          console.log(TODO);
+          // let customfield = new CustomFields.FieldFilter(defaultSelection, flatOptions, (thisBlock: any, newMemberSelectionIndex: any) => {
+          //   // cast 'thisBlock' to a search dropdown (see SearchDropdown.ts for CustomFields). we will also continue to use 'thisBlock' to refer to the block
+          //   const thisSearchDropdown: typeof CustomFields = thisBlock;
 
-            // Get a selection from the search dropdown, defaulting to defaultSelection
-            // NOTE: newMemberSelectionIndex is an index into WORDS not INITWORDS
-            // this is weird: the type of newMemberSelectionIndex seems to switch from string to int...
-            const newMemberSelection: string = newMemberSelectionIndex === "" ? defaultSelection : thisSearchDropdown.WORDS[newMemberSelectionIndex];      
-            // Set the tooltip on the dropdown using intellisense functionality  
-            thisSearchDropdown.setTooltip(this.getIntellisenseMemberTooltip(varUserName, newMemberSelection));          
+          //   // Get a selection from the search dropdown, defaulting to defaultSelection
+          //   // NOTE: newMemberSelectionIndex is an index into WORDS not INITWORDS
+          //   // this is weird: the type of newMemberSelectionIndex seems to switch from string to int...
+          //   const newMemberSelection: string = newMemberSelectionIndex === "" ? defaultSelection : thisSearchDropdown.WORDS[newMemberSelectionIndex];      
+          //   // Set the tooltip on the dropdown using intellisense functionality  
+          //   thisSearchDropdown.setTooltip(this.getIntellisenseMemberTooltip(varUserName, newMemberSelection));          
 
-            //back up the current member selection so it is not lost every time a cell is run; ignore status selections that start with !
-            if(thisBlock.selectedMember == "") {
-              block.data = newMemberSelection;
-            }
-            else if(newMemberSelection.startsWith("!")){
-              block.data = thisBlock.selectedMember;
-            }
-            else {
-              block.data = newMemberSelection
-            }
+          //   //back up the current member selection so it is not lost every time a cell is run; ignore status selections that start with !
+          //   if(thisBlock.selectedMember == "") {
+          //     block.data = newMemberSelection;
+          //   }
+          //   else if(newMemberSelection.startsWith("!")){
+          //     block.data = thisBlock.selectedMember;
+          //   }
+          //   else {
+          //     block.data = newMemberSelection
+          //   }
         
-            //back up to XML data if valid
-            if (varUserName !== "" && block.selectedMember !== "") {
-              block.data = varUserName + ":" + block.selectedMember;
-            }
-            return newMemberSelection;
-          })
+          //   //back up to XML data if valid
+          //   if (varUserName !== "" && block.selectedMember !== "") {
+          //     block.data = varUserName + ":" + block.selectedMember;
+          //   }
+          //   return newMemberSelection;
+          // })
 
-          input.appendField(customfield, "MEMBER");
+          // input.appendField(customfield, "MEMBER");
         } //end handling search dropdown approach
 
         //back up to XML data if valid; when the deserialized XML contains data, we should never overwrite it here
@@ -817,5 +840,14 @@ export abstract class AbstractToolbox {
     // TODO provide toolbox def below
       // this.workspace.updateToolbox()
    
+  }
+
+  /**
+   * Using the current toolbox definition, update the toolbox
+   */
+  UpdateToolbox(){
+    // let toolboxJSON = JSON.stringify( this.toolboxDefinition );
+    // this.workspace?.updateToolbox(toolboxJSON);
+    this.workspace?.updateToolbox(this.toolboxDefinition);
   }
 }
