@@ -77,7 +77,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                     }
                 ],
                 "name": "COMMENT",
-                "colour": "%{BKY_COLOUR_HUE}"
+                "colour": "20"
             },
             {
                 "kind": "CATEGORY",
@@ -119,7 +119,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                     }
                 ],
                 "name": "LOGIC",
-                "colour": "%{BKY_LOGIC_HUE}"
+                "colour": "260"
             },
             {
                 "kind": "CATEGORY",
@@ -156,7 +156,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                     }
                 ],
                 "name": "LOOPS",
-                "colour": "%{BKY_LOOPS_HUE}"
+                "colour": "120"
             },
             {
                 "kind": "CATEGORY",
@@ -228,7 +228,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                     }
                 ],
                 "name": "MATH",
-                "colour": "%{BKY_MATH_HUE}"
+                "colour": "230"
             },
             {
                 "kind": "CATEGORY",
@@ -295,7 +295,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                     }
                 ],
                 "name": "TEXT",
-                "colour": "%{BKY_TEXTS_HUE}"
+                "colour": "160"
             },
             {
                 "kind": "CATEGORY",
@@ -412,7 +412,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                     }
                 ],
                 "name": "LISTS",
-                "colour": "%{BKY_LISTS_HUE}"
+                "colour": "260"
             },
             {
                 "kind": "CATEGORY",
@@ -439,7 +439,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                     }
                 ],
                 "name": "COLOUR",
-                "colour": "%{BKY_COLOUR_HUE}"
+                "colour": "20"
             },
             {
                 "kind": "CATEGORY",
@@ -501,13 +501,13 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
             {
                 "kind": "CATEGORY",
                 "name": "VARIABLES",
-                "colour": "%{BKY_VARIABLES_HUE}",
+                "colour": "330",
                 "custom": "VARIABLE"
             },
             {
                 "kind": "CATEGORY",
                 "name": "FUNCTIONS",
-                "colour": "%{BKY_PROCEDURES_HUE}",
+                "colour": "290",
                 "custom": "PROCEDURE"
             }
         ],

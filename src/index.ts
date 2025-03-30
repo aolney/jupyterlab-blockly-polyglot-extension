@@ -52,37 +52,37 @@ export class BlocklyWidget extends Widget {
         {
             "kind": "CATEGORY",
             "name": "COMMENT",
-            "colour": "%{BKY_COLOUR_HUE}"
+            "colour": "20"
         },
         {
             "kind": "CATEGORY",
             "name": "LOGIC",
-            "colour": "%{BKY_LOGIC_HUE}"
+            "colour": "210"
         },
         {
             "kind": "CATEGORY",
             "name": "LOOPS",
-            "colour": "%{BKY_LOOPS_HUE}"
+            "colour": "120"
         },
         {
             "kind": "CATEGORY",
             "name": "MATH",
-            "colour": "%{BKY_MATH_HUE}"
+            "colour": "230"
         },
         {
             "kind": "CATEGORY",
             "name": "TEXT",
-            "colour": "%{BKY_TEXTS_HUE}"
+            "colour": "160"
         },
         {
             "kind": "CATEGORY",
             "name": "LISTS",
-            "colour": "%{BKY_LISTS_HUE}"
+            "colour": "260"
         },
         {
             "kind": "CATEGORY",
             "name": "COLOUR",
-            "colour": "%{BKY_COLOUR_HUE}"
+            "colour": "20"
         },
         {
             "kind": "CATEGORY",
@@ -100,13 +100,13 @@ export class BlocklyWidget extends Widget {
         {
             "kind": "CATEGORY",
             "name": "VARIABLES",
-            "colour": "%{BKY_VARIABLES_HUE}",
+            "colour": "330",
             "custom": "VARIABLE"
         },
         {
             "kind": "CATEGORY",
             "name": "FUNCTIONS",
-            "colour": "%{BKY_PROCEDURES_HUE}",
+            "colour": "290",
             "custom": "PROCEDURE"
         }
     ],
@@ -219,7 +219,8 @@ export class BlocklyWidget extends Widget {
       }
       //load the toolbox with blocks
       if( this.toolbox ){
-        this.toolbox.UpdateToolbox();
+        //TODO turn back on
+        // this.toolbox.UpdateToolbox();
       }
     }
   }
@@ -320,10 +321,34 @@ export class BlocklyWidget extends Widget {
    * Widget has attached to DOM and is ready for interaction. Inject blockly into div and set up event listeners for blockly events
    */
   onAfterAttach(): void {
-    // Inject blockly into page. We do so without definiting the toolbox/palette b/c that will change with kernel
-    // this.workspace = Blockly.inject("blocklyDivPoly");
-    // TODO STOPPED HERE: seems to be a problem updating the toolbox. Breakpoint the update and perhaps load the full definition at injection (and try to update later)
-    this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: this.toolboxDefinition});
+
+    // TODO STOPPED HERE: seems to be a problem updating the toolbox. 
+    // We can use { "kind": "categoryToolbox",  "contents": [] } to initialize and then update to get categories
+    // BUT there are no blocks in those categories
+    // If we provide blocks in the initialization, those blocks are not found - it looks like the only blocks 
+    // found under Blocks[prototypeName] are the ones we define in PythonToolbox
+    // Confirm if we have 1 block and it is defined the PythonToolbox, there is no error
+    // => Try resolving by extending pythonGenerator
+
+    //toolbox can't be completely empty or blockly throws errors
+    let starterToolbox =  
+    // { "kind": "categoryToolbox",  "contents": [] };
+    {
+      "kind": "categoryToolbox",
+      "contents": [
+        {
+          "kind": "category",
+          "name": "Control",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "comprehensionForEach_Python"
+            },
+          ]
+        }
+      ]
+    };
+    this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: starterToolbox});
 
     // TODO: move toolbox initialization elsewhere; should change with kernel
     // console.log("jupyterlab_blockly_polyglot_extension: blockly palette initialized");

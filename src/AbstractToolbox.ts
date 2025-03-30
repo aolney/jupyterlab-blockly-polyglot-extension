@@ -14,6 +14,7 @@ export interface IToolbox {
     UpdateAllIntellisense():void;
     BlocksToCode():string;
     DoFinalInitialization(): void;
+    GetDefaultToolbox():Blockly.utils.toolbox.ToolboxDefinition;
     UpdateToolbox():void;
 }
 
@@ -445,7 +446,7 @@ export abstract class AbstractToolbox {
       const xmlList: Element[] = [];
 
       const button = document.createElement('button');
-      button.setAttribute('text', '%{BKY_NEW_VARIABLE}');
+      button.setAttribute('text', "Create variable...");
       button.setAttribute('callbackKey', 'CREATE_VARIABLE');
       (workspace as Blockly.WorkspaceSvg).registerButtonCallback('CREATE_VARIABLE', function (button) {
           Blockly.Variables.createVariableButtonHandler(button.getTargetWorkspace());
@@ -840,6 +841,10 @@ export abstract class AbstractToolbox {
     // TODO provide toolbox def below
       // this.workspace.updateToolbox()
    
+  }
+
+  GetDefaultToolbox(){
+    return this.toolboxDefinition;
   }
 
   /**
