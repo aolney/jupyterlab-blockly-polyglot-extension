@@ -853,6 +853,32 @@ export abstract class AbstractToolbox {
   UpdateToolbox(){
     // let toolboxJSON = JSON.stringify( this.toolboxDefinition );
     // this.workspace?.updateToolbox(toolboxJSON);
-    this.workspace?.updateToolbox(this.toolboxDefinition);
+
+    // @ts-ignore
+    let starterToolbox =  
+    // { "kind": "categoryToolbox",  "contents": [] };
+    {
+      "kind": "categoryToolbox",
+      "contents": [
+        {
+          "kind": "category",
+          "name": "LOGIC",
+          "contents": [
+            {
+              "kind": "block",
+              // "type": "comprehensionForEach_Python"
+              "type": "controls_if"
+            },
+          ]
+        }
+      ]
+    };
+    // TODO stopped here; this works so this.toolboxDefinition must be flawed somehow 
+    // Flaw is not as simple as block does not exist; for that we get a different error 
+    // Invalid block definition for type: comprehensionForEach_Python
+    this.workspace?.updateToolbox(starterToolbox);
+    // this.workspace?.updateToolbox(this.toolboxDefinition);
+
+    console.log("updated toolbox")
   }
 }

@@ -32,6 +32,7 @@ export class BlocklyWidget extends Widget {
    */
   toolbox:IToolbox | null;
 
+  // TODO do we need this definition?
   /**
    * Default toolbox definition - categories but no entries. Can't have empty initial toolbox due to Blockly bug
    * https://groups.google.com/g/blockly/c/xgbXQ5YXjB4
@@ -220,7 +221,7 @@ export class BlocklyWidget extends Widget {
       //load the toolbox with blocks
       if( this.toolbox ){
         //TODO turn back on
-        // this.toolbox.UpdateToolbox();
+        this.toolbox.UpdateToolbox();
       }
     }
   }
@@ -327,10 +328,13 @@ export class BlocklyWidget extends Widget {
     // BUT there are no blocks in those categories
     // If we provide blocks in the initialization, those blocks are not found - it looks like the only blocks 
     // found under Blocks[prototypeName] are the ones we define in PythonToolbox
-    // Confirm if we have 1 block and it is defined the PythonToolbox, there is no error
-    // => Try resolving by extending pythonGenerator
+    // Confirmed if we have 1 block and it is defined the PythonToolbox, there is no error
+    // => Try resolving by extending pythonGenerator - NO 
+    // Problem is that Blockly.Blocks is empty unless we import libraryBlocks with a side effect
+    // => This is now resolved so trying original toolbox update approach
 
     //toolbox can't be completely empty or blockly throws errors
+    // @ts-ignore
     let starterToolbox =  
     // { "kind": "categoryToolbox",  "contents": [] };
     {
@@ -338,17 +342,24 @@ export class BlocklyWidget extends Widget {
       "contents": [
         {
           "kind": "category",
-          "name": "Control",
+          "name": "LOGIC",
           "contents": [
             {
               "kind": "block",
-              "type": "comprehensionForEach_Python"
+              // "type": "comprehensionForEach_Python"
+              "type": "controls_if"
             },
           ]
         }
       ]
     };
-    this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: starterToolbox});
+    // This works for blockly native and our custom blocks, as long as we don't "Update Toolbox"
+    // with "Update Toolbox" this fails; clicking on menu item gives a.getAttribute is not a function
+    // this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: starterToolbox});
+
+    // This works for blockly native and our custom blocks, as long as we don't "Update Toolbox"
+    // with "Update Toolbox" this fails; clicking on menu item gives a.getAttribute is not a function
+    this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: this.toolboxDefinition});
 
     // TODO: move toolbox initialization elsewhere; should change with kernel
     // console.log("jupyterlab_blockly_polyglot_extension: blockly palette initialized");

@@ -1,7 +1,12 @@
 import { AbstractToolbox, IntellisenseEntry, IToolbox } from "./AbstractToolbox";
 import { INotebookTracker } from "@jupyterlab/notebook";
 import * as Blockly from 'blockly/core';
-import { Order, pythonGenerator } from 'blockly/python';
+// import { Order, pythonGenerator } from 'blockly/python';
+import { pythonGenerator } from 'blockly/python';
+// Import the default blocks. We just need to load them here (side effect). Ignore usage check.
+import * as libraryBlocks from 'blockly/blocks';
+// Import English message file (determines language of blocks)
+import * as en from 'blockly/msg/en';
 
 export class PythonToolbox extends AbstractToolbox implements IToolbox {
 
@@ -552,6 +557,15 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
     }
 
     InitializeGenerator(): void {
+
+        // Blockly.Blocks is empty at this point
+        // We have to do a no-op with libraryBlocks for them to attach to Blockly.Blocks (side effect)
+        if(libraryBlocks) {} //you're not supposed to understand this :)
+
+        // Set blocks language to English; override the type error
+        // @ts-ignore
+        Blockly.setLocale(en);
+
         //get generator from blockly
         // let generator = pythonGenerator;
 
@@ -588,110 +602,131 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         //-----------------
         //define new blocks
         //-----------------
+        
+        // Blockly.Blocks["comprehensionForEach_Python"] = {
+        //     init: function () {
+        //         console.log("comprehensionForEach_Python init");
+        //         this.appendValueInput("LIST").setCheck(null).appendField("for each item").appendField(new Blockly.FieldVariable("i") as Blockly.Field, "VAR").appendField("in list");
+        //         this.appendValueInput("YIELD").setCheck(null).setAlign(Blockly.inputs.Align.RIGHT).appendField("yield");
+        //         this.setOutput(true, null);
+        //         this.setColour(230);
+        //         this.setTooltip("Use this to generate a sequence of elements, also known as a comprehension. Often used for list comprehensions.");
+        //         this.setHelpUrl("https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions");
+        //     },
+        // };
+        //TODO looks like different approach needed to define generator for block, see https://developers.google.com/blockly/guides/configure/web/custom-blocks
+        // EXAMPLE
+        // const test_block = {
+        //     init: function() {
+        //       this.appendDummyInput('the name')
+        //         .appendField('please enter your name');
+        //       this.appendValueInput('NAME');
+        //       this.setTooltip('');
+        //       this.setHelpUrl('');
+        //       this.setColour(225);
+        //     }
+        //   };
+        //   Blockly.common.defineBlocks({test_block: test_block});
+        //   pythonGenerator.forBlock['test_block'] = function() {
+        //     // TODO: change Order.ATOMIC to the correct operator precedence strength
+        //     const value_name = generator.valueToCode(block, 'NAME', Order.ATOMIC);
+        //     // TODO: Assemble python into the code variable.
+        //     const code = '...';
+        //     return code;
+        //   }
 
-        Blockly.Blocks["comprehensionForEach_Python"] = {
-            init: function () {
-                console.log("comprehensionForEach_Python init");
-                this.appendValueInput("LIST").setCheck(null).appendField("for each item").appendField(new Blockly.FieldVariable("i") as Blockly.Field, "VAR").appendField("in list");
-                this.appendValueInput("YIELD").setCheck(null).setAlign(Blockly.inputs.Align.RIGHT).appendField("yield");
-                this.setOutput(true, null);
-                this.setColour(230);
-                this.setTooltip("Use this to generate a sequence of elements, also known as a comprehension. Often used for list comprehensions.");
-                this.setHelpUrl("https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions");
-            },
-        };
-        // @ts-ignore
-        pythonGenerator["comprehensionForEach_Python"] = ((block: Blockly.Block): string => {
-            const var$: string = pythonGenerator.getVariableName(block.getFieldValue("VAR"))
-            const list: string = pythonGenerator.valueToCode(block, "LIST", Order.ATOMIC);
-            const yieldValue : string = pythonGenerator.valueToCode(block, "YIELD", Order.ATOMIC);
-            const code = yieldValue + " for " + var$ + " in " + list;
-            return code;
-        });
+        // // @ts-ignore
+        // pythonGenerator["comprehensionForEach_Python"] = ((block: Blockly.Block): string => {
+        //     const var$: string = pythonGenerator.getVariableName(block.getFieldValue("VAR"))
+        //     const list: string = pythonGenerator.valueToCode(block, "LIST", Order.ATOMIC);
+        //     const yieldValue : string = pythonGenerator.valueToCode(block, "YIELD", Order.ATOMIC);
+        //     const code = yieldValue + " for " + var$ + " in " + list;
+        //     return code;
+        // });
 
-        Blockly.Blocks["withAs_Python"] = {
-            init: function () {
-                console.log("withAs_Python init");
-                this.appendValueInput("EXPRESSION").setCheck(null).appendField("with");
-                this.appendDummyInput().appendField("as").appendField(new Blockly.FieldVariable("item") as Blockly.Field, "TARGET");
-                this.appendStatementInput("SUITE").setCheck(null);
-                this.setNextStatement(true);
-                this.setPreviousStatement(true);
-                // const value_3: any = this.setInputsInline(true);
-                this.setColour(230);
-                this.setTooltip("Use this to open resources (usually file-type) in a way that automatically handles errors and disposes of them when done. May not be supported by all libraries.");
-                this.setHelpUrl("https://docs.python.org/3/reference/compound_stmts.html#with");
-            },
-        };
-        // @ts-ignore
-        pythonGenerator["withAs_Python"] = ((block: Blockly.Block): string => {
-            let copyOfStruct: any = (pythonGenerator.statementToCode(block, "SUITE"));
-            let expression: string = pythonGenerator.valueToCode(block, "EXPRESSION", Order.ATOMIC);
-            let target: string = pythonGenerator.getVariableName(block.getFieldValue("TARGET"));
-            let code = "with " + expression + " as " + target + ":\n" + copyOfStruct.toString();
-            return code
-        });
+        // Blockly.Blocks["withAs_Python"] = {
+        //     init: function () {
+        //         console.log("withAs_Python init");
+        //         this.appendValueInput("EXPRESSION").setCheck(null).appendField("with");
+        //         this.appendDummyInput().appendField("as").appendField(new Blockly.FieldVariable("item") as Blockly.Field, "TARGET");
+        //         this.appendStatementInput("SUITE").setCheck(null);
+        //         this.setNextStatement(true);
+        //         this.setPreviousStatement(true);
+        //         // const value_3: any = this.setInputsInline(true);
+        //         this.setColour(230);
+        //         this.setTooltip("Use this to open resources (usually file-type) in a way that automatically handles errors and disposes of them when done. May not be supported by all libraries.");
+        //         this.setHelpUrl("https://docs.python.org/3/reference/compound_stmts.html#with");
+        //     },
+        // };
+        // // @ts-ignore
+        // pythonGenerator["withAs_Python"] = ((block: Blockly.Block): string => {
+        //     let copyOfStruct: any = (pythonGenerator.statementToCode(block, "SUITE"));
+        //     let expression: string = pythonGenerator.valueToCode(block, "EXPRESSION", Order.ATOMIC);
+        //     let target: string = pythonGenerator.getVariableName(block.getFieldValue("TARGET"));
+        //     let code = "with " + expression + " as " + target + ":\n" + copyOfStruct.toString();
+        //     return code
+        // });
 
-        Blockly.Blocks["textFromFile_Python"] = {
-            init: function () {
-                console.log("textFromFile_Python init");
-                this.appendValueInput("FILENAME").setCheck("String").appendField("read text from file");
-                this.setOutput(true, null);
-                this.setColour(230);
-                this.setTooltip("Use this to read a text file. It will output a string.");
-                this.setHelpUrl("https://docs.python.org/3/tutorial/inputoutput.html");
-            },
-        };
-        // @ts-ignore
-        pythonGenerator["textFromFile_Python"] = ((block: Blockly.Block): string => {
-            let fileName = pythonGenerator.valueToCode(block, "FILENAME", Order.ATOMIC);
-            let code = "open(" + fileName + ",encoding=\'utf-8\').read()";
-            return code;
-        });
+        // Blockly.Blocks["textFromFile_Python"] = {
+        //     init: function () {
+        //         console.log("textFromFile_Python init");
+        //         this.appendValueInput("FILENAME").setCheck("String").appendField("read text from file");
+        //         this.setOutput(true, null);
+        //         this.setColour(230);
+        //         this.setTooltip("Use this to read a text file. It will output a string.");
+        //         this.setHelpUrl("https://docs.python.org/3/tutorial/inputoutput.html");
+        //     },
+        // };
+        // // @ts-ignore
+        // pythonGenerator["textFromFile_Python"] = ((block: Blockly.Block): string => {
+        //     let fileName = pythonGenerator.valueToCode(block, "FILENAME", Order.ATOMIC);
+        //     let code = "open(" + fileName + ",encoding=\'utf-8\').read()";
+        //     return code;
+        // });
 
-        //TODO stopped here
-        Blockly.Blocks["openReadFile_Python"] = {
-            init: function () {
-                console.log("openReadFile_Python init");
-                this.appendValueInput("FILENAME").setCheck("String").appendField("open file for reading");
-                this.setOutput(true, null);
-                this.setColour(230);
-                this.setTooltip("Use this to read a file. It will output a file, not a string.");
-                this.setHelpUrl("https://docs.python.org/3/tutorial/inputoutput.html");
-            },
-        };
-        // @ts-ignore
-        pythonGenerator["openReadFile_Python"] = ((block: Blockly.Block): string => {
-            let filename = pythonGenerator.valueToCode(block, "FILENAME", Order.ATOMIC);
-            let code = "open(" + filename + ",encoding=\'utf-8\')";
-            return code;
-        });
+        // //TODO stopped here
+        // Blockly.Blocks["openReadFile_Python"] = {
+        //     init: function () {
+        //         console.log("openReadFile_Python init");
+        //         this.appendValueInput("FILENAME").setCheck("String").appendField("open file for reading");
+        //         this.setOutput(true, null);
+        //         this.setColour(230);
+        //         this.setTooltip("Use this to read a file. It will output a file, not a string.");
+        //         this.setHelpUrl("https://docs.python.org/3/tutorial/inputoutput.html");
+        //     },
+        // };
+        // // @ts-ignore
+        // pythonGenerator["openReadFile_Python"] = ((block: Blockly.Block): string => {
+        //     let filename = pythonGenerator.valueToCode(block, "FILENAME", Order.ATOMIC);
+        //     let code = "open(" + filename + ",encoding=\'utf-8\')";
+        //     return code;
+        // });
 
-        Blockly.Blocks["openWriteFile_Python"] = {
-            init: function () {
-                console.log("openWriteFile_Python init");
-                this.appendValueInput("FILENAME").setCheck("String").appendField("open file for writing");
-                this.setOutput(true, null);
-                this.setColour(230);
-                this.setTooltip("Use this to write to a file. It will output a file, not a string.");
-                this.setHelpUrl("https://docs.python.org/3/tutorial/inputoutput.html");
-            },
-        };
-        // @ts-ignore
-        pythonGenerator["openWriteFile_Python"] = ((block: Blockly.Block): string => {
-            let filename= pythonGenerator.valueToCode(block, "FILENAME", Order.ATOMIC) ;
-            let code = "open(" + filename + ",\'w\',encoding=\'utf-8\')";
-            return code;
-        });
+        // Blockly.Blocks["openWriteFile_Python"] = {
+        //     init: function () {
+        //         console.log("openWriteFile_Python init");
+        //         this.appendValueInput("FILENAME").setCheck("String").appendField("open file for writing");
+        //         this.setOutput(true, null);
+        //         this.setColour(230);
+        //         this.setTooltip("Use this to write to a file. It will output a file, not a string.");
+        //         this.setHelpUrl("https://docs.python.org/3/tutorial/inputoutput.html");
+        //     },
+        // };
+        // // @ts-ignore
+        // pythonGenerator["openWriteFile_Python"] = ((block: Blockly.Block): string => {
+        //     let filename= pythonGenerator.valueToCode(block, "FILENAME", Order.ATOMIC) ;
+        //     let code = "open(" + filename + ",\'w\',encoding=\'utf-8\')";
+        //     return code;
+        // });
 
 
         // attach generator to this; needed b/c intellisense block generators below assume this.generator
         this.generator = pythonGenerator;
 
-        //make intellisense blocks
-        this.makeMemberIntellisenseBlock("varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
-        this.makeMemberIntellisenseBlock("varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
-        this.makeMemberIntellisenseBlock("varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
+        // //make intellisense blocks
+        // this.makeMemberIntellisenseBlock("varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
+        // this.makeMemberIntellisenseBlock("varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
+        // this.makeMemberIntellisenseBlock("varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
 
     }
 
