@@ -31,87 +31,6 @@ export class BlocklyWidget extends Widget {
    * Toolbox defining most blockly behavior, including language specific behavior
    */
   toolbox:IToolbox | null;
-
-  // TODO do we need this definition?
-  /**
-   * Default toolbox definition - categories but no entries. Can't have empty initial toolbox due to Blockly bug
-   * https://groups.google.com/g/blockly/c/xgbXQ5YXjB4
-   */
-  toolboxDefinition = {
-    "kind": "categoryToolbox",
-    "contents": [
-        {
-            "kind": "CATEGORY",
-            "name": "IMPORT",
-            "colour": "255"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "FREESTYLE",
-            "colour": "290"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "COMMENT",
-            "colour": "20"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "LOGIC",
-            "colour": "210"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "LOOPS",
-            "colour": "120"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "MATH",
-            "colour": "230"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "TEXT",
-            "colour": "160"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "LISTS",
-            "colour": "260"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "COLOUR",
-            "colour": "20"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "CONVERSION",
-            "colour": "120"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "I/O",
-            "colour": "190"
-        },
-        {
-            "kind": "SEP"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "VARIABLES",
-            "colour": "330",
-            "custom": "VARIABLE"
-        },
-        {
-            "kind": "CATEGORY",
-            "name": "FUNCTIONS",
-            "colour": "290",
-            "custom": "PROCEDURE"
-        }
-    ],
-};
   /**
    * Flag for  whether the widget is attached to Jupyter
    */
@@ -323,43 +242,9 @@ export class BlocklyWidget extends Widget {
    */
   onAfterAttach(): void {
 
-    // TODO STOPPED HERE: seems to be a problem updating the toolbox. 
-    // We can use { "kind": "categoryToolbox",  "contents": [] } to initialize and then update to get categories
-    // BUT there are no blocks in those categories
-    // If we provide blocks in the initialization, those blocks are not found - it looks like the only blocks 
-    // found under Blocks[prototypeName] are the ones we define in PythonToolbox
-    // Confirmed if we have 1 block and it is defined the PythonToolbox, there is no error
-    // => Try resolving by extending pythonGenerator - NO 
-    // Problem is that Blockly.Blocks is empty unless we import libraryBlocks with a side effect
-    // => This is now resolved so trying original toolbox update approach
-
-    //toolbox can't be completely empty or blockly throws errors
-    // @ts-ignore
-    let starterToolbox =  
-    // { "kind": "categoryToolbox",  "contents": [] };
-    {
-      "kind": "categoryToolbox",
-      "contents": [
-        {
-          "kind": "category",
-          "name": "LOGIC",
-          "contents": [
-            {
-              "kind": "block",
-              // "type": "comprehensionForEach_Python"
-              "type": "controls_if"
-            },
-          ]
-        }
-      ]
-    };
-    // This works for blockly native and our custom blocks, as long as we don't "Update Toolbox"
-    // with "Update Toolbox" this fails; clicking on menu item gives a.getAttribute is not a function
-    // this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: starterToolbox});
-
-    // This works for blockly native and our custom blocks, as long as we don't "Update Toolbox"
-    // with "Update Toolbox" this fails; clicking on menu item gives a.getAttribute is not a function
-    this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: this.toolboxDefinition});
+    //toolbox can't be null or blockly throws errors
+    let starterToolbox =  { "kind": "categoryToolbox",  "contents": [] };
+    this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: starterToolbox});
 
     // TODO: move toolbox initialization elsewhere; should change with kernel
     // console.log("jupyterlab_blockly_polyglot_extension: blockly palette initialized");

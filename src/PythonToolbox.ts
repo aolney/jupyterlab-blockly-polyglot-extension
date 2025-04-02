@@ -18,12 +18,10 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "importAs"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "importFrom"
                     }
                 ],
@@ -35,22 +33,18 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "dummyOutputCodeBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "dummyNoOutputCodeBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "valueOutputCodeBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "valueNoOutputCodeBlock"
                     }
                 ],
@@ -62,22 +56,18 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "dummyOutputCommentBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "dummyNoOutputCommentBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "valueOutputCommentBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "valueNoOutputCommentBlock"
                     }
                 ],
@@ -89,37 +79,30 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "controls_if"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "logic_compare"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "logic_operation"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "logic_negate"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "logic_boolean"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "logic_null"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "logic_ternary"
                     }
                 ],
@@ -131,32 +114,26 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "controls_repeat_ext"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "controls_whileUntil"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "controls_for"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "comprehensionForEach"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "controls_forEach"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "controls_flow_statements"
                     }
                 ],
@@ -168,67 +145,54 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_number"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_arithmetic"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_single"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_trig"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_constant"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_number_property"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_round"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_on_list"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_modulo"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_constrain"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_random_int"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_random_float"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "math_atan2"
                     }
                 ],
@@ -240,62 +204,50 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_join"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_append"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_length"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_isEmpty"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_indexOf"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_charAt"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_getSubstring"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_changeCase"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_trim"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_print"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "text_prompt_ext"
                     }
                 ],
@@ -307,112 +259,90 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_create_with"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_create_with"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_repeat"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_length"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_isEmpty"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_indexOf"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_getIndex"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_setIndex"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_getSublist"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "indexer"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_split"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "lists_sort"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "setBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "sortedBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "zipBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "dictBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "listBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "tupleBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "tupleConstructorBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "reversedBlock"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "selector_train_test_split"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "train_test_split"
                     }
                 ],
@@ -424,22 +354,18 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "colour_picker"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "colour_random"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "colour_rgb"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "colour_blend"
                     }
                 ],
@@ -451,22 +377,18 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "boolConversion"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "intConversion"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "floatConversion"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "strConversion"
                     }
                 ],
@@ -478,22 +400,18 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "withAs"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "textFromFile"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "openReadFile"
                     },
                     {
                         "kind": "BLOCK",
-                        "blockxml": {},
                         "type": "openWriteFile"
                     }
                 ],
@@ -516,9 +434,6 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "custom": "PROCEDURE"
             }
         ],
-        // "xmlns": "https://developers.google.com/blockly/xml",
-        // "id": "toolbox",
-        // "style": "display: none"
     };
 
     constructor(notebooks: INotebookTracker, workspace: Blockly.WorkspaceSvg) {
