@@ -440,7 +440,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox{
             "custom": "SPECIAL"
             }
         ],
-    }
+    };
 
     constructor(notebooks:INotebookTracker,workspace:Blockly.WorkspaceSvg){
         super(notebooks,workspace);

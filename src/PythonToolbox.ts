@@ -646,10 +646,10 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
     }
 
     /**
-     * For Python we have an empty implementation
-     * @param workspace 
+     * Do any late stage initialization of the toolbox
      */
     DoFinalInitialization(): void {
+
 
     }
 }
