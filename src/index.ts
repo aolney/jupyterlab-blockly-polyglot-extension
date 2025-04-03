@@ -139,9 +139,9 @@ export class BlocklyWidget extends Widget {
       }
       //load the toolbox with blocks
       if( this.toolbox ){
-        // this.toolbox.UpdateToolbox();
+        this.toolbox.UpdateToolbox();
         // TODO test; greys out everything
-        this.toolbox.GreyOutBlocks([]);
+        // this.toolbox.GreyOutBlocks([]);
       }
     }
   }
