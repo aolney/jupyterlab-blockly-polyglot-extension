@@ -57,6 +57,7 @@
         "watch:labextension": "jupyter labextension watch ."
     },
     "dependencies": {
+        "@blockly/block-plus-minus": "^8.0.12",
         "@jupyterlab/application": "^4.3.6",
         "@jupyterlab/apputils": "^4.4.6",
         "@jupyterlab/settingregistry": "^4.0.0",

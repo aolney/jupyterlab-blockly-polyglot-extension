@@ -6,6 +6,8 @@ import { Order, pythonGenerator } from 'blockly/python';
 import * as libraryBlocks from 'blockly/blocks';
 // Import English message file (determines language of blocks)
 import * as en from 'blockly/msg/en';
+import { createMinusField } from "./field_minus.js";
+import { createPlusField } from "./field_plus.js";
 
 export class PythonToolbox extends AbstractToolbox implements IToolbox {
 
@@ -597,6 +599,81 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
             return [code, Order.FUNCTION_CALL];
         });
     }
+    /**
+     * A mutator for dynamic arguments. A block using this mutator must have a dummy called
+     *  "EMPTY" and must register this mutator.
+     * TODO: use new Blockly JSON-based mutator interface
+     * @param this 
+     * @param mutatorName 
+     * @param startCount 
+     * @param emptyLeadSlotLabel 
+     * @param nonEmptyLeadSlotLabel 
+     * @param additionalSlotLabel 
+     */
+    createDynamicArgumentMutator(this: any, mutatorName: string, startCount: number, emptyLeadSlotLabel: string, nonEmptyLeadSlotLabel: string, additionalSlotLabel: string): void {
+        const mutator: any = {
+            itemCount_: 0,
+            mutationToDom: function (): any {
+                const container: any = Blockly.utils.xml.createElement("mutation");
+                container.setAttribute("items", (this).itemCount_);
+                return container;
+            },
+            domToMutation: function (xmlElement: any): any {
+                const itemsAttribute: string | null = xmlElement.getAttribute("items");
+                const targetCount: number = itemsAttribute ? parseInt(itemsAttribute, 10) : 0;
+                return (this).updateShape_(targetCount);
+            },
+            updateShape_: function (targetCount_1: number): any {
+                while ((this).itemCount_ < targetCount_1) {
+                    (this).addPart_();
+                }
+                while ((this).itemCount_ > targetCount_1) {
+                    (this).removePart_();
+                }
+                return (this).updateMinus_();
+            },
+            plus: function (): any {
+                (this).addPart_();
+                return (this).updateMinus_();
+            },
+            minus: function (): void {
+                if ((this).itemCount_ !== 0) {
+                    (this).removePart_();
+                    (this).updateMinus_();
+                }
+            },
+            addPart_: function (): void {
+                if ((this).itemCount_ === 0) {
+                    (this).removeInput("EMPTY");
+                    (this).topInput_ = (this).appendValueInput("ADD" + (this).itemCount_).appendField(createPlusField(), "PLUS").appendField(nonEmptyLeadSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
+                }
+                else {
+                    (this).appendValueInput("ADD" + (this).itemCount_).appendField(additionalSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
+                }
+                (this).itemCount_ = ((this).itemCount_ + 1);
+            },
+            removePart_: function (): void {
+                (this).itemCount_ = ((this).itemCount_ - 1);
+                (this).removeInput("ADD" + (this).itemCount_);
+                if ((this).itemCount_ === 0) {
+                    (this).topInput_ = (this).appendDummyInput("EMPTY").appendField(createPlusField(), "PLUS").appendField(emptyLeadSlotLabel);
+                }
+            },
+            updateMinus_: function (): void {
+                const minusField: Blockly.Field = (this).getField("MINUS");
+                if (!minusField && ((this).itemCount_ > 0)) {
+                    (this).topInput_.insertFieldAt(1, createMinusField(), "MINUS");
+                }
+                else if (minusField && ((this).itemCount_ < 1)) {
+                    (this).topInput_.removeField("MINUS");
+                }
+            },
+        };
+        Blockly.Extensions.registerMutator(mutatorName, mutator, function (this: any): any {
+            (this).getInput("EMPTY").insertFieldAt(0, createPlusField(), "PLUS");
+            return (this).updateShape_(startCount);
+        });
+    }
 
     InitializeGenerator(): void {
 
@@ -646,8 +723,6 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         //-----------------
         //we combine elements of the old API with current guidelines, see https://developers.google.com/blockly/guides/configure/web/custom-blocks
         //notably we define on Blockly.Blocks directly rather than using Blockly.common.defineBlocks
-
-        //TODO STOPPED HERE; IMPLEMENT ALL CUSTOM PYTHON BLOCKS NEXT
 
         Blockly.Blocks["comprehensionForEach"] = {
             init: function () {
