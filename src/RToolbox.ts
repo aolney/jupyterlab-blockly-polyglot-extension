@@ -1,9 +1,11 @@
-import { AbstractToolbox,IntellisenseEntry, IToolbox } from "./AbstractToolbox";
+import { AbstractToolbox,IGenerator,IntellisenseEntry, IToolbox } from "./AbstractToolbox";
 import { RGenerator } from "./RGenerator";
 import { INotebookTracker } from "@jupyterlab/notebook";
 import * as Blockly from 'blockly/core';
 
 export class RToolbox extends AbstractToolbox implements IToolbox{
+
+    generator: IGenerator = RGenerator;
 
     toolboxDefinition = {
         "kind": "categoryToolbox",
@@ -538,8 +540,8 @@ export class RToolbox extends AbstractToolbox implements IToolbox{
         this.generator = RGenerator;
 
         //make intellisense blocks
-        this.makeMemberIntellisenseBlock("varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
-        this.makeMemberIntellisenseBlock("varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);   
+        this.makeMemberIntellisenseBlock(this,"varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
+        this.makeMemberIntellisenseBlock(this,"varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);   
 
         //override default blockly functionality
 

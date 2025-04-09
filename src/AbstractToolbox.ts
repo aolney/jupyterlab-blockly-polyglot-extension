@@ -3,6 +3,8 @@ import { NotebookPanel, INotebookTracker } from "@jupyterlab/notebook";
 import { Kernel, KernelMessage } from "@jupyterlab/services";
 import { IRenderMime, MimeModel } from "@jupyterlab/rendermime";
 import { CustomFields } from "./SearchDropdown";
+import { createMinusField } from "./field_minus.js";
+import { createPlusField } from "./field_plus.js";
 
 // CustomFieldFilter
 /**
@@ -60,7 +62,7 @@ class IntellisenseVariable {
 }
 
 
-/**
+  /**
  * Base class for toolboxes. Implements common functionality.
  */
 export abstract class AbstractToolbox {
@@ -76,7 +78,7 @@ export abstract class AbstractToolbox {
   /**
    * Generator converts blocks to code; will be set by a language specific method
    */
-  generator: IGenerator | null = null;
+  abstract generator: IGenerator; //| null = null;
   /**
    * Toolbox definition; defines the blocks available in the menu and where they appear.
    * Readonly as a backup of the initial state.
@@ -87,18 +89,20 @@ export abstract class AbstractToolbox {
    * Cache intellisense requests. Keyed on variable name
    */
   intellisenseLookup: Map<string, IntellisenseVariable> = new Map<string, IntellisenseVariable>([]);
-  /**
-   * Annotation for selecting property intelliblocks from Blockly. May be set by subclasses for their language suffix
-   */
-  intelliblockPropertyLabel = "varGetProperty"
-  /**
-   * Annotation for selecting method intelliblocks from Blockly. May be set by subclasses for their language suffix
-   */
-  intelliblockMethodLabel = "varDoMethod"
-  /**
-   * Annotation for selecting constructor intelliblocks from Blockly. May be set by subclasses for their language suffix
-   */
-  intelliblockConstructorLabel = "varCreateObject"
+
+  // TODO: it seems we don't need these to change across languages because the languages are sufficiently isolated
+  // /**
+  //  * Annotation for selecting property intelliblocks from Blockly. May be set by subclasses for their language suffix
+  //  */
+  // intelliblockPropertyLabel = "varGetProperty"
+  // /**
+  //  * Annotation for selecting method intelliblocks from Blockly. May be set by subclasses for their language suffix
+  //  */
+  // intelliblockMethodLabel = "varDoMethod"
+  // /**
+  //  * Annotation for selecting constructor intelliblocks from Blockly. May be set by subclasses for their language suffix
+  //  */
+  // intelliblockConstructorLabel = "varCreateObject"
 
   /**
    * Intitialize using notebook kernel and blockly workspace; calls initialize generator
@@ -110,9 +114,14 @@ export abstract class AbstractToolbox {
     this.notebooks = notebooks;
     this.workspace = workspace;
 
+    //Register the intelliblock mutator
+    this.createDynamicArgumentMutator("intelliblockMutator", 1, "add argument", "using", "and");
+
+    //TODO confirm this should not be deferred until the kernel is attached
     this.InitializeGenerator();
 
     //register custom flyout for intelliblocks (VARIABLES category)
+    //TODO likewise confirm this should not be deferred until the kernel is attached
     Blockly.Variables.flyoutCategoryBlocks = this.flyoutCategoryBlocks;
 
   }
@@ -189,8 +198,8 @@ export abstract class AbstractToolbox {
   UpdateAllIntellisense(): void {
     const workspace: Blockly.Workspace = Blockly.getMainWorkspace();
 
-    const blocks: Blockly.Block[] = workspace.getBlocksByType(this.intelliblockPropertyLabel, false);
-    workspace.getBlocksByType(this.intelliblockMethodLabel, false).forEach(block => blocks.push(block));
+    const blocks: Blockly.Block[] = workspace.getBlocksByType("varGetProperty", false);
+    workspace.getBlocksByType("varDoMethod", false).forEach(block => blocks.push(block));
 
     blocks.forEach((block: any) => {
       block.updateIntellisense(block, null, ((varName: string): string[][] => this.requestAndStubOptions(block, varName)));
@@ -482,21 +491,21 @@ export abstract class AbstractToolbox {
       }
       if (Blockly.Blocks.varGetProperty) {
         const xml_2: Element = Blockly.utils.xml.createElement("block");
-        xml_2.setAttribute("type", this.intelliblockPropertyLabel);
+        xml_2.setAttribute("type", "varGetProperty");
         xml_2.setAttribute("gap", Blockly.Blocks.varGetProperty ? "20" : "8");
         xml_2.appendChild(Blockly.Variables.generateVariableFieldDom(lastVarFieldXml));
         xmlList.push(xml_2);
       }
       if (Blockly.Blocks.varDoMethod) {
         const xml_3: Element = Blockly.utils.xml.createElement("block");
-        xml_3.setAttribute("type", this.intelliblockMethodLabel);
+        xml_3.setAttribute("type", "varDoMethod");
         xml_3.setAttribute("gap", Blockly.Blocks.varDoMethod ? "20" : "8");
         xml_3.appendChild(Blockly.Variables.generateVariableFieldDom(lastVarFieldXml));
         xmlList.push(xml_3);
       }
       if (Blockly.Blocks.varCreateObject) {
         const xml_4: Element = Blockly.utils.xml.createElement("block");
-        xml_4.setAttribute("type", this.intelliblockConstructorLabel);
+        xml_4.setAttribute("type", "varCreateObject");
         xml_4.setAttribute("gap", Blockly.Blocks.varCreateObject ? "20" : "8");
         xml_4.appendChild(Blockly.Variables.generateVariableFieldDom(lastVarFieldXml));
         xmlList.push(xml_4);
@@ -616,6 +625,85 @@ export abstract class AbstractToolbox {
       block.removeInput(inputName);
     }
   }
+
+
+      /**
+       * A mutator for dynamic arguments. A block using this mutator must have a dummy called
+       *  "EMPTY" and must register this mutator.
+       * TODO: use new Blockly JSON-based mutator interface
+       * @param this 
+       * @param mutatorName 
+       * @param startCount 
+       * @param emptyLeadSlotLabel 
+       * @param nonEmptyLeadSlotLabel 
+       * @param additionalSlotLabel 
+       */
+      createDynamicArgumentMutator(this: any, mutatorName: string, startCount: number, emptyLeadSlotLabel: string, nonEmptyLeadSlotLabel: string, additionalSlotLabel: string): void {
+          const mutator: any = {
+              itemCount_: 0,
+              mutationToDom: function (): any {
+                  const container: any = Blockly.utils.xml.createElement("mutation");
+                  container.setAttribute("items", (this).itemCount_);
+                  return container;
+              },
+              domToMutation: function (xmlElement: any): any {
+                  const itemsAttribute: string | null = xmlElement.getAttribute("items");
+                  const targetCount: number = itemsAttribute ? parseInt(itemsAttribute, 10) : 0;
+                  return (this).updateShape_(targetCount);
+              },
+              updateShape_: function (targetCount_1: number): any {
+                  while ((this).itemCount_ < targetCount_1) {
+                      (this).addPart_();
+                  }
+                  while ((this).itemCount_ > targetCount_1) {
+                      (this).removePart_();
+                  }
+                  return (this).updateMinus_();
+              },
+              plus: function (): any {
+                  (this).addPart_();
+                  return (this).updateMinus_();
+              },
+              minus: function (): void {
+                  if ((this).itemCount_ !== 0) {
+                      (this).removePart_();
+                      (this).updateMinus_();
+                  }
+              },
+              addPart_: function (): void {
+                  if ((this).itemCount_ === 0) {
+                      (this).removeInput("EMPTY");
+                      (this).topInput_ = (this).appendValueInput("ADD" + (this).itemCount_).appendField(createPlusField(), "PLUS").appendField(nonEmptyLeadSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
+                  }
+                  else {
+                      (this).appendValueInput("ADD" + (this).itemCount_).appendField(additionalSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
+                  }
+                  (this).itemCount_ = ((this).itemCount_ + 1);
+              },
+              removePart_: function (): void {
+                  (this).itemCount_ = ((this).itemCount_ - 1);
+                  (this).removeInput("ADD" + (this).itemCount_);
+                  if ((this).itemCount_ === 0) {
+                      (this).topInput_ = (this).appendDummyInput("EMPTY").appendField(createPlusField(), "PLUS").appendField(emptyLeadSlotLabel);
+                  }
+              },
+              updateMinus_: function (): void {
+                  const minusField: Blockly.Field = (this).getField("MINUS");
+                  if (!minusField && ((this).itemCount_ > 0)) {
+                      (this).topInput_.insertFieldAt(1, createMinusField(), "MINUS");
+                  }
+                  else if (minusField && ((this).itemCount_ < 1)) {
+                      (this).topInput_.removeField("MINUS");
+                  }
+              },
+          };
+          Blockly.Extensions.registerMutator(mutatorName, mutator, function (this: any): any {
+              (this).getInput("EMPTY").insertFieldAt(0, createPlusField(), "PLUS");
+              return (this).updateShape_(startCount);
+          });
+      }
+  
+
   // TODO: MAKE BLOCK THAT ALLOWS USER TO MAKE AN ASSIGNMENT TO A PROPERTY (SETTER)
   // TODO: CHANGE OUTPUT CONNECTOR DEPENDING ON INTELLISENSE: IF FUNCTION DOESN'T HAVE AN OUTPUT, REMOVE CONNECTOR
   /**
@@ -627,7 +715,7 @@ export abstract class AbstractToolbox {
    * @param hasArgs 
    * @param hasDot 
    */
-  makeMemberIntellisenseBlock(blockName: string, preposition: string, verb: string, memberSelectionFunction: ((arg0: IntellisenseEntry) => boolean), hasArgs: boolean, hasDot: boolean): void {
+  makeMemberIntellisenseBlock(toolbox: AbstractToolbox, blockName: string, preposition: string, verb: string, memberSelectionFunction: ((arg0: IntellisenseEntry) => boolean), hasArgs: boolean, hasDot: boolean): void {
     // Note the "blockName" given to these is hardcoded elsewhere, e.g. the toolbox and intellisense update functions
     Blockly.Blocks[blockName] = {
       //Get the user-facing name of the selected variable; on creation, defaults to created name
@@ -655,10 +743,11 @@ export abstract class AbstractToolbox {
             return data[0];
             //prefer current var name over all others when it exists
           } else if (fieldVariable.getText() != null) {
-            fieldVariable.getText();
+            return fieldVariable.getText();
           }
         }
         // this should never fire but typescript is complaining without it here
+        console.log("!!! intelliblock failed to render user selected variable name - this is a serious error !!!")
         return "";
       },
 
@@ -668,14 +757,14 @@ export abstract class AbstractToolbox {
 
       updateIntellisense(block: any, selectedVarOption: string, optionsFunction: (varUserName: string) => string[][]) {
         const input: Blockly.Input | null = block.getInput("INPUT");
-        this.SafeRemoveField(block, "MEMBER", "INPUT");
-        this.SafeRemoveField(block, "USING", "INPUT");
+        toolbox.SafeRemoveField(block, "MEMBER", "INPUT");
+        toolbox.SafeRemoveField(block, "USING", "INPUT");
         const varUserName: string = block.varSelectionUserName(block, selectedVarOption);
         // Remove extra data from options
         const flatOptions: string[] = optionsFunction(varUserName).map(arr => arr[0]);
 
         // Restore stored value from XML if it exists
-        const dataString: string = block.data ? block.data : "";
+        const dataString: string = block.data ?? "";
 
         // We must enforce a default selection for the UI to match user expectations. When a dropdown appears, the first option is highlighted by default as though it is selected by default. We also have to reify and persist this selection to block.data for proper blocks to code behavior when no selection has been made by the user
         let defaultSelection: string = "";
@@ -688,41 +777,38 @@ export abstract class AbstractToolbox {
           defaultSelection = dataString.split(":")[1]
         }
 
-        if (input) { //&& CustomFields && Blockly){
-          // junk debug code to get CustomFields loaded but not do anything with it
-          // => mere loading triggers error
-          let TODO = CustomFields;
-          console.log(TODO);
-          // let customfield = new CustomFields.FieldFilter(defaultSelection, flatOptions, (thisBlock: any, newMemberSelectionIndex: any) => {
-          //   // cast 'thisBlock' to a search dropdown (see SearchDropdown.ts for CustomFields). we will also continue to use 'thisBlock' to refer to the block
-          //   const thisSearchDropdown: typeof CustomFields = thisBlock;
+        if (input) { 
+          let customfield = new CustomFields.FieldFilter(defaultSelection, flatOptions, function(this: any, newMemberSelectionIndex: any) {
+            // cast 'this' to a search dropdown (see SearchDropdown.ts for CustomFields). we will also continue to use 'thisBlock' to refer to the block
+            // Within validator, "this" refers to FieldVariable not block.
+            const thisSearchDropdown: typeof CustomFields = this;
 
-          //   // Get a selection from the search dropdown, defaulting to defaultSelection
-          //   // NOTE: newMemberSelectionIndex is an index into WORDS not INITWORDS
-          //   // this is weird: the type of newMemberSelectionIndex seems to switch from string to int...
-          //   const newMemberSelection: string = newMemberSelectionIndex === "" ? defaultSelection : thisSearchDropdown.WORDS[newMemberSelectionIndex];      
-          //   // Set the tooltip on the dropdown using intellisense functionality  
-          //   thisSearchDropdown.setTooltip(this.getIntellisenseMemberTooltip(varUserName, newMemberSelection));          
+            // Get a selection from the search dropdown, defaulting to defaultSelection
+            // NOTE: newMemberSelectionIndex is an index into WORDS not INITWORDS
+            // this is weird: the type of newMemberSelectionIndex seems to switch from string to int...
+            const newMemberSelection: string = newMemberSelectionIndex === "" ? defaultSelection : thisSearchDropdown.WORDS[newMemberSelectionIndex];      
+            // Set the tooltip on the dropdown using intellisense functionality  
+            thisSearchDropdown.setTooltip(toolbox.getIntellisenseMemberTooltip(varUserName, newMemberSelection));          
 
-          //   //back up the current member selection so it is not lost every time a cell is run; ignore status selections that start with !
-          //   if(thisBlock.selectedMember == "") {
-          //     block.data = newMemberSelection;
-          //   }
-          //   else if(newMemberSelection.startsWith("!")){
-          //     block.data = thisBlock.selectedMember;
-          //   }
-          //   else {
-          //     block.data = newMemberSelection
-          //   }
+            //back up the current member selection so it is not lost every time a cell is run; ignore status selections that start with !
+            if(block.selectedMember == "") {
+              block.data = newMemberSelection;
+            }
+            else if(newMemberSelection.startsWith("!")){
+              block.data = block.selectedMember;
+            }
+            else {
+              block.data = newMemberSelection
+            }
 
-          //   //back up to XML data if valid
-          //   if (varUserName !== "" && block.selectedMember !== "") {
-          //     block.data = varUserName + ":" + block.selectedMember;
-          //   }
-          //   return newMemberSelection;
-          // })
+            //back up to XML data if valid
+            if (varUserName !== "" && block.selectedMember !== "") {
+              block.data = varUserName + ":" + block.selectedMember;
+            }
+            return newMemberSelection;
+          })
 
-          // input.appendField(customfield, "MEMBER");
+          input.appendField(customfield, "MEMBER");
         } //end handling search dropdown approach
 
         //back up to XML data if valid; when the deserialized XML contains data, we should never overwrite it here
@@ -733,7 +819,7 @@ export abstract class AbstractToolbox {
         //set up the initial member tooltip
         const memberField: Blockly.Field | null = block.getField("MEMBER");
         if (memberField) {
-          memberField.setTooltip(this.getIntellisenseMemberTooltip(varUserName, memberField.getText()));
+          memberField.setTooltip(toolbox.getIntellisenseMemberTooltip(varUserName, memberField.getText()));
         }
       },
 
@@ -750,14 +836,14 @@ export abstract class AbstractToolbox {
           "variable name",
           ((newSelection: string): any => {
             // update the options FieldDropdown by recreating it with the newly selected variable name
-            this.updateIntellisense(this, newSelection, ((varName: string): string[][] => this.requestAndStubOptions(this, varName)));
+            this.updateIntellisense(this, newSelection, ((varName: string): string[][] => toolbox.requestAndStubOptions(this, varName)));
             //Since we are leveraging the validator, we return the selected value without modification
             return newSelection;
           })
         ) as Blockly.Field, "VAR").appendField(verb);
 
         // Create the options FieldDropdown using "optionsGenerator" with the selected name, currently None
-        this.updateIntellisense(this, null, ((varName: string): string[][] => this.requestAndStubOptions(this, varName)));
+        this.updateIntellisense(this, null, ((varName: string): string[][] => toolbox.requestAndStubOptions(this, varName)));
 
         // original (non mutator) approach
         // if hasArgs then thisBlock.setInputsInline(true)
@@ -780,7 +866,7 @@ export abstract class AbstractToolbox {
           //deserialize data from xml, var:member
           const data: string[] = this.data ? this.data.toString() : "";
           // update the options FieldDropdown by recreating it with fresh intellisense
-          this.updateIntellisense(this, null, ((varName: string): string[][] => this.getIntellisenseMemberOptions(memberSelectionFunction, varName)));
+          this.updateIntellisense(this, null, ((varName: string): string[][] => toolbox.getIntellisenseMemberOptions(memberSelectionFunction, varName)));
           //restore previous member selection if possible
           const memberField: Blockly.Field = this.getField("MEMBER");
           //prevent setting to ""
@@ -789,7 +875,7 @@ export abstract class AbstractToolbox {
           }
           // update tooltip
           const varName: string = this.varSelectionUserName(this, null);
-          this.setTooltip(this.getIntellisenseVarTooltip(varName));
+          this.setTooltip(toolbox.getIntellisenseVarTooltip(varName));
         }
       },
     };

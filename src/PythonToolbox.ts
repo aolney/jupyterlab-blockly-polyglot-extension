@@ -6,8 +6,6 @@ import { Order, pythonGenerator } from 'blockly/python';
 import * as libraryBlocks from 'blockly/blocks';
 // Import English message file (determines language of blocks)
 import * as en from 'blockly/msg/en';
-import { createMinusField } from "./field_minus.js";
-import { createPlusField } from "./field_plus.js";
 
 export class PythonToolbox extends AbstractToolbox implements IToolbox {
 
@@ -599,81 +597,6 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
             return [code, Order.FUNCTION_CALL];
         });
     }
-    /**
-     * A mutator for dynamic arguments. A block using this mutator must have a dummy called
-     *  "EMPTY" and must register this mutator.
-     * TODO: use new Blockly JSON-based mutator interface
-     * @param this 
-     * @param mutatorName 
-     * @param startCount 
-     * @param emptyLeadSlotLabel 
-     * @param nonEmptyLeadSlotLabel 
-     * @param additionalSlotLabel 
-     */
-    createDynamicArgumentMutator(this: any, mutatorName: string, startCount: number, emptyLeadSlotLabel: string, nonEmptyLeadSlotLabel: string, additionalSlotLabel: string): void {
-        const mutator: any = {
-            itemCount_: 0,
-            mutationToDom: function (): any {
-                const container: any = Blockly.utils.xml.createElement("mutation");
-                container.setAttribute("items", (this).itemCount_);
-                return container;
-            },
-            domToMutation: function (xmlElement: any): any {
-                const itemsAttribute: string | null = xmlElement.getAttribute("items");
-                const targetCount: number = itemsAttribute ? parseInt(itemsAttribute, 10) : 0;
-                return (this).updateShape_(targetCount);
-            },
-            updateShape_: function (targetCount_1: number): any {
-                while ((this).itemCount_ < targetCount_1) {
-                    (this).addPart_();
-                }
-                while ((this).itemCount_ > targetCount_1) {
-                    (this).removePart_();
-                }
-                return (this).updateMinus_();
-            },
-            plus: function (): any {
-                (this).addPart_();
-                return (this).updateMinus_();
-            },
-            minus: function (): void {
-                if ((this).itemCount_ !== 0) {
-                    (this).removePart_();
-                    (this).updateMinus_();
-                }
-            },
-            addPart_: function (): void {
-                if ((this).itemCount_ === 0) {
-                    (this).removeInput("EMPTY");
-                    (this).topInput_ = (this).appendValueInput("ADD" + (this).itemCount_).appendField(createPlusField(), "PLUS").appendField(nonEmptyLeadSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
-                }
-                else {
-                    (this).appendValueInput("ADD" + (this).itemCount_).appendField(additionalSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
-                }
-                (this).itemCount_ = ((this).itemCount_ + 1);
-            },
-            removePart_: function (): void {
-                (this).itemCount_ = ((this).itemCount_ - 1);
-                (this).removeInput("ADD" + (this).itemCount_);
-                if ((this).itemCount_ === 0) {
-                    (this).topInput_ = (this).appendDummyInput("EMPTY").appendField(createPlusField(), "PLUS").appendField(emptyLeadSlotLabel);
-                }
-            },
-            updateMinus_: function (): void {
-                const minusField: Blockly.Field = (this).getField("MINUS");
-                if (!minusField && ((this).itemCount_ > 0)) {
-                    (this).topInput_.insertFieldAt(1, createMinusField(), "MINUS");
-                }
-                else if (minusField && ((this).itemCount_ < 1)) {
-                    (this).topInput_.removeField("MINUS");
-                }
-            },
-        };
-        Blockly.Extensions.registerMutator(mutatorName, mutator, function (this: any): any {
-            (this).getInput("EMPTY").insertFieldAt(0, createPlusField(), "PLUS");
-            return (this).updateShape_(startCount);
-        });
-    }
 
     InitializeGenerator(): void {
 
@@ -684,9 +607,6 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         // Set blocks language to English; override the type error
         // @ts-ignore
         Blockly.setLocale(en);
-
-        //get generator from blockly
-        // let generator = pythonGenerator;
 
         //-------------------------------------
         //override default blockly functionality
@@ -1023,19 +943,21 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
             "https://docs.python.org/3/library/functions.html#input",
             "input");
 
-        // TODO stopped here; look into mutator for intelliblocks and removing custom elements of our mutator in favor of standard blockly mutation
-        // //make intellisense blocks
-        // this.makeMemberIntellisenseBlock("varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
-        // this.makeMemberIntellisenseBlock("varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
-        // this.makeMemberIntellisenseBlock("varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
-
     }
 
     /**
-     * Do any late stage initialization of the toolbox
+     * Do any late stage initialization of the toolbox. 
+     * Note that final initialization is called when the kernel changes, so only then is it appropriate to make intelliblocks,
+     * which are kernel-dependent.
      */
     DoFinalInitialization(): void {
 
+        //TODO stopped here; we have an encapsulation problem with makeMemberIntellisense block such that we need to give these functions access to 
+        //abstract toolbox and related functions; probably could resolve by passing abstract toolbox in
+        //make intellisense blocks
+        this.makeMemberIntellisenseBlock(this,"varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
+        this.makeMemberIntellisenseBlock(this,"varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
+        this.makeMemberIntellisenseBlock(this,"varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
 
     }
 }

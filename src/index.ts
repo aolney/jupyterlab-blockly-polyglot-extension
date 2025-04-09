@@ -140,6 +140,8 @@ export class BlocklyWidget extends Widget {
       //load the toolbox with blocks
       if( this.toolbox ){
         this.toolbox.UpdateToolbox();
+
+        this.toolbox?.DoFinalInitialization();
         // TODO test; greys out everything
         // this.toolbox.GreyOutBlocks([]);
       }
@@ -264,9 +266,6 @@ export class BlocklyWidget extends Widget {
     };
     this.workspace.removeChangeListener(logListener);
     this.workspace.addChangeListener(logListener);
-
-    // Do any toolbox initialization we had to defer until we were attached
-    this.toolbox?.DoFinalInitialization();
   }
 
   /**
@@ -341,8 +340,7 @@ DeserializeBlocksFromXML(): void {
         this.clearBlocks();
 
         this.toolbox?.DecodeWorkspace(xmlString)
-        // TODO delete the following line
-        console.log(xmlString);
+
         // LogToServer(JupyterLogEntry082720_Create("xml-to-blocks", xmlString));
         } catch (e: any) {
           window.alert("Unable to perform \'Code to Blocks\': XML is either invald or renames existing variables. Specific error message is: " + e.message);
