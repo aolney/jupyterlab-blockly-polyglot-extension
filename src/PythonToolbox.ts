@@ -956,8 +956,19 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         //abstract toolbox and related functions; probably could resolve by passing abstract toolbox in
         //make intellisense blocks
         this.makeMemberIntellisenseBlock(this,"varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
+        // this.registerMemberIntellisenseCodeGenerator("varGetProperty", false, true);
+
         this.makeMemberIntellisenseBlock(this,"varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
+        // this.registerMemberIntellisenseCodeGenerator("varDoMethod", true, true);
+
         this.makeMemberIntellisenseBlock(this,"varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
+        // this.registerMemberIntellisenseCodeGenerator("varCreateObject", true, true);
 
     }
+
+    registerMemberIntellisenseCodeGenerator(blockName:string, hasArgs: boolean, hasDot: boolean){
+        pythonGenerator.forBlock[blockName] = ((block: Blockly.Block, generator): [string, number] | string => {
+            return this.generateMemberIntellisenseCode(block,generator,hasArgs,hasDot)
+        });
+    };
 }

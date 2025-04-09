@@ -1,11 +1,11 @@
-import { AbstractToolbox,IGenerator,IntellisenseEntry, IToolbox } from "./AbstractToolbox";
+import { AbstractToolbox,IntellisenseEntry, IToolbox } from "./AbstractToolbox";
 import { RGenerator } from "./RGenerator";
 import { INotebookTracker } from "@jupyterlab/notebook";
 import * as Blockly from 'blockly/core';
 
 export class RToolbox extends AbstractToolbox implements IToolbox{
 
-    generator: IGenerator = RGenerator;
+    generator = RGenerator;
 
     toolboxDefinition = {
         "kind": "categoryToolbox",
@@ -541,13 +541,21 @@ export class RToolbox extends AbstractToolbox implements IToolbox{
 
         //make intellisense blocks
         this.makeMemberIntellisenseBlock(this,"varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
-        this.makeMemberIntellisenseBlock(this,"varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);   
+        // this.registerMemberIntellisenseCodeGenerator("varGetProperty", false, true);
 
+        this.makeMemberIntellisenseBlock(this,"varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);   
+        // this.registerMemberIntellisenseCodeGenerator("varDoMethod", true, true);
         //override default blockly functionality
 
         //define new blocks
 
     }
+
+    registerMemberIntellisenseCodeGenerator(blockName:string, hasArgs: boolean, hasDot: boolean){
+            RGenerator.forBlock[blockName] = ((block: Blockly.Block, generator : any): [string, number] | string => {
+                return this.generateMemberIntellisenseCode(block,generator,hasArgs,hasDot)
+            });
+        };
 
 
 }

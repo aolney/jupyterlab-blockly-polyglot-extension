@@ -29,6 +29,7 @@ export interface IGenerator {
   statementToCode(block: Blockly.Block, name: string): string;
   valueToCode(block: Blockly.Block, name: string, outerOrder: number): string;
   workspaceToCode(workspace: Blockly.WorkspaceSvg): string;
+  // forBlock: Record<string, (block: Blockly.Block, generator: Blockly.CodeGenerator) => [string, number] | string | null>
 }
 
 
@@ -84,6 +85,15 @@ export abstract class AbstractToolbox {
    * Readonly as a backup of the initial state.
    */
   abstract readonly toolboxDefinition: Blockly.utils.toolbox.ToolboxDefinition;
+
+  /**
+   * Register a code generation function for an intellisense member. Must be done in generator subclass
+   * because blockly can't cast specific language generators to CodeGenerator
+   * @param blockName 
+   * @param hasArgs 
+   * @param hasDot 
+   */
+  abstract registerMemberIntellisenseCodeGenerator(blockName:string, hasArgs: boolean, hasDot: boolean) : void;
 
   /**
    * Cache intellisense requests. Keyed on variable name
@@ -702,7 +712,7 @@ export abstract class AbstractToolbox {
               return (this).updateShape_(startCount);
           });
       }
-  
+
 
   // TODO: MAKE BLOCK THAT ALLOWS USER TO MAKE AN ASSIGNMENT TO A PROPERTY (SETTER)
   // TODO: CHANGE OUTPUT CONNECTOR DEPENDING ON INTELLISENSE: IF FUNCTION DOESN'T HAVE AN OUTPUT, REMOVE CONNECTOR
@@ -880,34 +890,79 @@ export abstract class AbstractToolbox {
       },
     };
 
-    // Generate intellisense member block conversion code
-    // @ts-ignore
-    this.generator[blockName] = ((block: any): string => {
-      if (this.generator != null) {
-        // get the variable and member names
-        const varName: string | undefined = this.generator.getVariableName(block.getFieldValue("VAR"));
-        const memberName: string = block.getFieldValue("MEMBER").toString();
+    this.registerMemberIntellisenseCodeGenerator(blockName, hasArgs, hasDot);
 
-        let code = "";
-        // member is not defined, generate nothing
-        if (memberName.indexOf("!") === 0) {
-          code = "";
-          // if arguments, generate code for multiple arguments
-        } else if (hasArgs) {
-          let args = [];
-          for (let i = 0; i < block.itemCount_; i++) {
-            args.push(this.generator.valueToCode(block, "ADD" + i.toString(), 2.1));
-          }
-          // assumes commas are univeral separators for arguments...
-          const cleanArgs: string = args.join(",");
-          code = varName + (hasDot ? this.dotString() : "") + memberName + "(" + cleanArgs + ")";
-          // member without arguments, generate
-        } else {
-          code = varName + (hasDot ? this.dotString() : "") + memberName;
+    // blockly has problems casting generators to CodeGenerator, so we push this to a default 
+    // implementation and register the code generator in the subclasses
+    // // Generate intellisense member block conversion code
+    // this.generator.forBlock[blockName] = ((block: any): string => {
+    //   if (this.generator != null) {
+    //     // get the variable and member names
+    //     const varName: string | undefined = this.generator.getVariableName(block.getFieldValue("VAR"));
+    //     const memberName: string = block.getFieldValue("MEMBER").toString();
+
+    //     let code = "";
+    //     // member is not defined, generate nothing
+    //     if (memberName.indexOf("!") === 0) {
+    //       code = "";
+    //       // if arguments, generate code for multiple arguments
+    //     } else if (hasArgs) {
+    //       let args = [];
+    //       for (let i = 0; i < block.itemCount_; i++) {
+    //         args.push(this.generator.valueToCode(block, "ADD" + i.toString(), 2.1));
+    //       }
+    //       // assumes commas are univeral separators for arguments...
+    //       const cleanArgs: string = args.join(",");
+    //       code = varName + (hasDot ? this.dotString() : "") + memberName + "(" + cleanArgs + ")";
+    //       // member without arguments, generate
+    //     } else {
+    //       code = varName + (hasDot ? this.dotString() : "") + memberName;
+    //     }
+    //     return code;
+    //   }
+    //   else
+    //     return "";
+    // });
+  }
+
+  /**
+   * Provide default implementation for code generation of a member intellisense block. Unfortuately we cannot
+   * have the entire implementation in AbstractToolbox because blockly can't cast, e.g. PythonGenerator to CodeGenerator 
+   * @param block 
+   * @param generator 
+   * @param hasArgs 
+   * @param hasDot 
+   * @returns 
+   */
+  generateMemberIntellisenseCode(block: Blockly.Block, generator : IGenerator, hasArgs: boolean, hasDot: boolean): [string, number] | string {
+    if (this.generator != null) {
+      // get the variable and member names
+      const varName: string | undefined = this.generator.getVariableName(block.getFieldValue("VAR"));
+      const memberName: string = block.getFieldValue("MEMBER").toString();
+
+      let code = "";
+      // member is not defined, generate nothing
+      if (memberName.indexOf("!") === 0) {
+        code = "";
+        // if arguments, generate code for multiple arguments
+      } else if (hasArgs) {
+        let args = [];
+        // itemCount_ is protected
+        // @ts-ignore
+        for (let i = 0; i < block.itemCount_; i++) {
+          args.push(this.generator.valueToCode(block, "ADD" + i.toString(), 2.1));
         }
-        return code;
+        // assumes commas are univeral separators for arguments...
+        const cleanArgs: string = args.join(",");
+        code = varName + (hasDot ? this.dotString() : "") + memberName + "(" + cleanArgs + ")";
+        // member without arguments, generate
+      } else {
+        code = varName + (hasDot ? this.dotString() : "") + memberName;
       }
-    });
+      return code;
+    }
+    else
+      return "";
   }
 
   /**
