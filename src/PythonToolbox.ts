@@ -952,8 +952,6 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
      */
     DoFinalInitialization(): void {
 
-        //TODO stopped here; we have an encapsulation problem with makeMemberIntellisense block such that we need to give these functions access to 
-        //abstract toolbox and related functions; probably could resolve by passing abstract toolbox in
         //make intellisense blocks
         this.makeMemberIntellisenseBlock(this,"varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
         // this.registerMemberIntellisenseCodeGenerator("varGetProperty", false, true);

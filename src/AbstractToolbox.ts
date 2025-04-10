@@ -734,11 +734,13 @@ export abstract class AbstractToolbox {
         //Get the last var created. Insane but works because by default, the flyout specifically lists this var in the block. User then expects to change if needed
         const lastVar: Blockly.VariableModel = block.workspace.getAllVariables().slice(-1)[0];
         //Attempt to get XML serialized data
-        const dataString: string | null = block.data;
-        const data: string[] = dataString && dataString.indexOf(":") >= 0 ? dataString.split(":") : [""];
+        const dataString: string = block.data ?? "";
+        //data is var:member
+        const data: string[] = dataString.indexOf(":") >= 0 ? dataString.split(":") : [""];
 
         //if variable has been selected
         if (selection) {
+          // find the selection in the options
           const options = fieldVariable.getOptions();
           const matching_option = options.find((option: Blockly.MenuOption) => option[1] === selection);
           //if we matched the selection to an option (not null), check if element 0 is string and return it if so, otherwise return ""
@@ -801,16 +803,18 @@ export abstract class AbstractToolbox {
             thisSearchDropdown.setTooltip(toolbox.getIntellisenseMemberTooltip(varUserName, newMemberSelection));          
 
             //back up the current member selection so it is not lost every time a cell is run; ignore status selections that start with !
-            if(block.selectedMember == "") {
-              block.data = newMemberSelection;
+            //no selected member
+            if( block.selectedMember == "" ){
+              block.selectedMember = newMemberSelection;
             }
-            else if(newMemberSelection.startsWith("!")){
-              block.data = block.selectedMember;
+            //waiting for options
+            else if(newMemberSelection.startsWith("!") ){
+              block.selectedMember = this.selectedMember;
+            //we have options
+            } else if( !newMemberSelection.startsWith("!") ){
+              block.selectedMember = newMemberSelection;
             }
-            else {
-              block.data = newMemberSelection
-            }
-
+            
             //back up to XML data if valid
             if (varUserName !== "" && block.selectedMember !== "") {
               block.data = varUserName + ":" + block.selectedMember;
