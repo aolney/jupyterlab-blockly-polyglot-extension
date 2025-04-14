@@ -547,8 +547,8 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
     }
 
     /**
- * Create a Blockly/Python templated import block: TODO if we make this part of the variable menu, then users will never need to rename variable after using the block
- */
+     * Create a Blockly/Python templated import block: TODO if we make this part of the variable menu, then users will never need to rename variable after using the block
+     */
     makeImportBlock(blockName: string, labelOne: string, labelTwo: string): void {
         Blockly.Blocks[blockName] = {
             init: function () {
@@ -953,20 +953,20 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
     DoFinalInitialization(): void {
 
         //make intellisense blocks
-        this.makeMemberIntellisenseBlock(this,"varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
+        this.makeMemberIntellisenseBlock(this, "varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
         // this.registerMemberIntellisenseCodeGenerator("varGetProperty", false, true);
 
-        this.makeMemberIntellisenseBlock(this,"varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
+        this.makeMemberIntellisenseBlock(this, "varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
         // this.registerMemberIntellisenseCodeGenerator("varDoMethod", true, true);
 
-        this.makeMemberIntellisenseBlock(this,"varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
+        this.makeMemberIntellisenseBlock(this, "varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
         // this.registerMemberIntellisenseCodeGenerator("varCreateObject", true, true);
 
     }
 
-    registerMemberIntellisenseCodeGenerator(blockName:string, hasArgs: boolean, hasDot: boolean){
+    registerMemberIntellisenseCodeGenerator(blockName: string, hasArgs: boolean, hasDot: boolean) {
         pythonGenerator.forBlock[blockName] = ((block: Blockly.Block, generator): [string, number] | string => {
-            return this.generateMemberIntellisenseCode(block,generator,hasArgs,hasDot)
+            return this.generateMemberIntellisenseCode(block, generator, hasArgs, hasDot)
         });
     };
 }

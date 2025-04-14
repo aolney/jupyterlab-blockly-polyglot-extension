@@ -63,9 +63,9 @@ class IntellisenseVariable {
 }
 
 
-  /**
- * Base class for toolboxes. Implements common functionality.
- */
+/**
+* Base class for toolboxes. Implements common functionality.
+*/
 export abstract class AbstractToolbox {
 
   /**
@@ -93,7 +93,7 @@ export abstract class AbstractToolbox {
    * @param hasArgs 
    * @param hasDot 
    */
-  abstract registerMemberIntellisenseCodeGenerator(blockName:string, hasArgs: boolean, hasDot: boolean) : void;
+  abstract registerMemberIntellisenseCodeGenerator(blockName: string, hasArgs: boolean, hasDot: boolean): void;
 
   /**
    * Cache intellisense requests. Keyed on variable name
@@ -637,81 +637,84 @@ export abstract class AbstractToolbox {
   }
 
 
-      /**
-       * A mutator for dynamic arguments. A block using this mutator must have a dummy called
-       *  "EMPTY" and must register this mutator.
-       * TODO: use new Blockly JSON-based mutator interface
-       * @param this 
-       * @param mutatorName 
-       * @param startCount 
-       * @param emptyLeadSlotLabel 
-       * @param nonEmptyLeadSlotLabel 
-       * @param additionalSlotLabel 
-       */
-      createDynamicArgumentMutator(this: any, mutatorName: string, startCount: number, emptyLeadSlotLabel: string, nonEmptyLeadSlotLabel: string, additionalSlotLabel: string): void {
-          const mutator: any = {
-              itemCount_: 0,
-              mutationToDom: function (): any {
-                  const container: any = Blockly.utils.xml.createElement("mutation");
-                  container.setAttribute("items", (this).itemCount_);
-                  return container;
-              },
-              domToMutation: function (xmlElement: any): any {
-                  const itemsAttribute: string | null = xmlElement.getAttribute("items");
-                  const targetCount: number = itemsAttribute ? parseInt(itemsAttribute, 10) : 0;
-                  return (this).updateShape_(targetCount);
-              },
-              updateShape_: function (targetCount_1: number): any {
-                  while ((this).itemCount_ < targetCount_1) {
-                      (this).addPart_();
-                  }
-                  while ((this).itemCount_ > targetCount_1) {
-                      (this).removePart_();
-                  }
-                  return (this).updateMinus_();
-              },
-              plus: function (): any {
-                  (this).addPart_();
-                  return (this).updateMinus_();
-              },
-              minus: function (): void {
-                  if ((this).itemCount_ !== 0) {
-                      (this).removePart_();
-                      (this).updateMinus_();
-                  }
-              },
-              addPart_: function (): void {
-                  if ((this).itemCount_ === 0) {
-                      (this).removeInput("EMPTY");
-                      (this).topInput_ = (this).appendValueInput("ADD" + (this).itemCount_).appendField(createPlusField(), "PLUS").appendField(nonEmptyLeadSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
-                  }
-                  else {
-                      (this).appendValueInput("ADD" + (this).itemCount_).appendField(additionalSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
-                  }
-                  (this).itemCount_ = ((this).itemCount_ + 1);
-              },
-              removePart_: function (): void {
-                  (this).itemCount_ = ((this).itemCount_ - 1);
-                  (this).removeInput("ADD" + (this).itemCount_);
-                  if ((this).itemCount_ === 0) {
-                      (this).topInput_ = (this).appendDummyInput("EMPTY").appendField(createPlusField(), "PLUS").appendField(emptyLeadSlotLabel);
-                  }
-              },
-              updateMinus_: function (): void {
-                  const minusField: Blockly.Field = (this).getField("MINUS");
-                  if (!minusField && ((this).itemCount_ > 0)) {
-                      (this).topInput_.insertFieldAt(1, createMinusField(), "MINUS");
-                  }
-                  else if (minusField && ((this).itemCount_ < 1)) {
-                      (this).topInput_.removeField("MINUS");
-                  }
-              },
-          };
-          Blockly.Extensions.registerMutator(mutatorName, mutator, function (this: any): any {
-              (this).getInput("EMPTY").insertFieldAt(0, createPlusField(), "PLUS");
-              return (this).updateShape_(startCount);
-          });
-      }
+  /**
+   * A mutator for dynamic arguments. A block using this mutator must have a dummy called
+   *  "EMPTY" and must register this mutator.
+   * TODO: use new Blockly JSON-based mutator interface
+   * @param this 
+   * @param mutatorName 
+   * @param startCount 
+   * @param emptyLeadSlotLabel 
+   * @param nonEmptyLeadSlotLabel 
+   * @param additionalSlotLabel 
+   */
+  createDynamicArgumentMutator(this: any, mutatorName: string, startCount: number, emptyLeadSlotLabel: string, nonEmptyLeadSlotLabel: string, additionalSlotLabel: string): void {
+    //check if already registered; registering again will throw error
+    if (!Blockly.Extensions.isRegistered(mutatorName)) {
+      const mutator: any = {
+        itemCount_: 0,
+        mutationToDom: function (): any {
+          const container: any = Blockly.utils.xml.createElement("mutation");
+          container.setAttribute("items", (this).itemCount_);
+          return container;
+        },
+        domToMutation: function (xmlElement: any): any {
+          const itemsAttribute: string | null = xmlElement.getAttribute("items");
+          const targetCount: number = itemsAttribute ? parseInt(itemsAttribute, 10) : 0;
+          return (this).updateShape_(targetCount);
+        },
+        updateShape_: function (targetCount_1: number): any {
+          while ((this).itemCount_ < targetCount_1) {
+            (this).addPart_();
+          }
+          while ((this).itemCount_ > targetCount_1) {
+            (this).removePart_();
+          }
+          return (this).updateMinus_();
+        },
+        plus: function (): any {
+          (this).addPart_();
+          return (this).updateMinus_();
+        },
+        minus: function (): void {
+          if ((this).itemCount_ !== 0) {
+            (this).removePart_();
+            (this).updateMinus_();
+          }
+        },
+        addPart_: function (): void {
+          if ((this).itemCount_ === 0) {
+            (this).removeInput("EMPTY");
+            (this).topInput_ = (this).appendValueInput("ADD" + (this).itemCount_).appendField(createPlusField(), "PLUS").appendField(nonEmptyLeadSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
+          }
+          else {
+            (this).appendValueInput("ADD" + (this).itemCount_).appendField(additionalSlotLabel).setAlign(Blockly.inputs.Align.RIGHT);
+          }
+          (this).itemCount_ = ((this).itemCount_ + 1);
+        },
+        removePart_: function (): void {
+          (this).itemCount_ = ((this).itemCount_ - 1);
+          (this).removeInput("ADD" + (this).itemCount_);
+          if ((this).itemCount_ === 0) {
+            (this).topInput_ = (this).appendDummyInput("EMPTY").appendField(createPlusField(), "PLUS").appendField(emptyLeadSlotLabel);
+          }
+        },
+        updateMinus_: function (): void {
+          const minusField: Blockly.Field = (this).getField("MINUS");
+          if (!minusField && ((this).itemCount_ > 0)) {
+            (this).topInput_.insertFieldAt(1, createMinusField(), "MINUS");
+          }
+          else if (minusField && ((this).itemCount_ < 1)) {
+            (this).topInput_.removeField("MINUS");
+          }
+        },
+      };
+      Blockly.Extensions.registerMutator(mutatorName, mutator, function (this: any): any {
+        (this).getInput("EMPTY").insertFieldAt(0, createPlusField(), "PLUS");
+        return (this).updateShape_(startCount);
+      });
+    }
+  }
 
 
   // TODO: MAKE BLOCK THAT ALLOWS USER TO MAKE AN ASSIGNMENT TO A PROPERTY (SETTER)
@@ -789,8 +792,8 @@ export abstract class AbstractToolbox {
           defaultSelection = dataString.split(":")[1]
         }
 
-        if (input) { 
-          let customfield = new CustomFields.FieldFilter(defaultSelection, flatOptions, function(this: any, newMemberSelectionIndex: any) {
+        if (input) {
+          let customfield = new CustomFields.FieldFilter(defaultSelection, flatOptions, function (this: any, newMemberSelectionIndex: any) {
             // cast 'this' to a search dropdown (see SearchDropdown.ts for CustomFields). we will also continue to use 'thisBlock' to refer to the block
             // Within validator, "this" refers to FieldVariable not block.
             const thisSearchDropdown: typeof CustomFields = this;
@@ -798,23 +801,23 @@ export abstract class AbstractToolbox {
             // Get a selection from the search dropdown, defaulting to defaultSelection
             // NOTE: newMemberSelectionIndex is an index into WORDS not INITWORDS
             // this is weird: the type of newMemberSelectionIndex seems to switch from string to int...
-            const newMemberSelection: string = newMemberSelectionIndex === "" ? defaultSelection : thisSearchDropdown.WORDS[newMemberSelectionIndex];      
+            const newMemberSelection: string = newMemberSelectionIndex === "" ? defaultSelection : thisSearchDropdown.WORDS[newMemberSelectionIndex];
             // Set the tooltip on the dropdown using intellisense functionality  
-            thisSearchDropdown.setTooltip(toolbox.getIntellisenseMemberTooltip(varUserName, newMemberSelection));          
+            thisSearchDropdown.setTooltip(toolbox.getIntellisenseMemberTooltip(varUserName, newMemberSelection));
 
             //back up the current member selection so it is not lost every time a cell is run; ignore status selections that start with !
             //no selected member
-            if( block.selectedMember == "" ){
+            if (block.selectedMember == "") {
               block.selectedMember = newMemberSelection;
             }
             //waiting for options
-            else if(newMemberSelection.startsWith("!") ){
+            else if (newMemberSelection.startsWith("!")) {
               block.selectedMember = this.selectedMember;
-            //we have options
-            } else if( !newMemberSelection.startsWith("!") ){
+              //we have options
+            } else if (!newMemberSelection.startsWith("!")) {
               block.selectedMember = newMemberSelection;
             }
-            
+
             //back up to XML data if valid
             if (varUserName !== "" && block.selectedMember !== "") {
               block.data = varUserName + ":" + block.selectedMember;
@@ -938,7 +941,7 @@ export abstract class AbstractToolbox {
    * @param hasDot 
    * @returns 
    */
-  generateMemberIntellisenseCode(block: Blockly.Block, generator : IGenerator, hasArgs: boolean, hasDot: boolean): [string, number] | string {
+  generateMemberIntellisenseCode(block: Blockly.Block, generator: IGenerator, hasArgs: boolean, hasDot: boolean): [string, number] | string {
     if (this.generator != null) {
       // get the variable and member names
       const varName: string | undefined = this.generator.getVariableName(block.getFieldValue("VAR"));
@@ -1011,8 +1014,8 @@ export abstract class AbstractToolbox {
         let oldInit = block["init"];
 
         // add setColor to the end
-        block["init"] = 
-          function(){
+        block["init"] =
+          function () {
             //keep the old init
             // oldInit(); // this.jsonInit is not a function
             // oldInit.call(); //this.jsonInit is not a function
@@ -1036,15 +1039,15 @@ export abstract class AbstractToolbox {
     // }
 
     //ATTEMPT4: use eval
-            // block.init = oldInit;
+    // block.init = oldInit;
 
-        // get the source of the function
-        // let initString = block["init"].toString();
-        // // chop off the closing brace, add a new line, and close
-        // let newInitString = initString.slice(0, -1) + ";this.setColour('#979697')" + "}"
-        // // update with actual function
-        // let newInit =  eval(newInitString);
-        // block["init"] = newInit;
+    // get the source of the function
+    // let initString = block["init"].toString();
+    // // chop off the closing brace, add a new line, and close
+    // let newInitString = initString.slice(0, -1) + ";this.setColour('#979697')" + "}"
+    // // update with actual function
+    // let newInit =  eval(newInitString);
+    // block["init"] = newInit;
 
     this.UpdateToolbox();
 

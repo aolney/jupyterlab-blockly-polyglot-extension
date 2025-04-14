@@ -1,4 +1,5 @@
 import * as Blockly from 'blockly/core';
+//TODO: rewrite RGenerator in an OO way consistent with Blockly native languages
 /**
  * R code generator.
  * @type {!Blockly.Generator}

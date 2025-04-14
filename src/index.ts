@@ -133,9 +133,14 @@ export class BlocklyWidget extends Widget {
         //R kernel
         case kernelName == "ir":
           this.toolbox = new RToolbox(this.notebooks,this.workspace) as IToolbox;
+          break;
         // Python kernel
         case kernelName.toLocaleLowerCase().includes("python"):
           this.toolbox = new PythonToolbox(this.notebooks,this.workspace) as IToolbox;
+          break;
+        default:
+          window.alert(`You are attempting to use Blockly Polyglot with unknown kernel ${kernelName}. No blocks are defined for this kernel.`);
+
       }
       //load the toolbox with blocks
       if( this.toolbox ){
