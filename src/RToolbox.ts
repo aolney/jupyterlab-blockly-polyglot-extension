@@ -1,5 +1,5 @@
 import { AbstractToolbox, IntellisenseEntry, IToolbox } from "./AbstractToolbox";
-import { RGenerator } from "./RGenerator";
+import { Order,RGenerator,rGenerator,JoinMutatorBlock } from "./RGenerator";
 import { INotebookTracker } from "@jupyterlab/notebook";
 import * as Blockly from 'blockly/core';
 // Import the default blocks. We just need to load them here (side effect). Ignore usage check.
@@ -9,7 +9,7 @@ import * as en from 'blockly/msg/en';
 
 export class RToolbox extends AbstractToolbox implements IToolbox {
 
-    generator = RGenerator;
+    generator = rGenerator;
 
     toolboxDefinition = {
         "kind": "categoryToolbox",
@@ -111,7 +111,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 "contents": [
                     {
                         "kind": "BLOCK",
-                        "type": "controlsepeat_ext"
+                        "type": "controls_repeat_ext"
                     },
                     {
                         "kind": "BLOCK",
@@ -162,7 +162,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                     },
                     {
                         "kind": "BLOCK",
-                        "type": "mathound"
+                        "type": "math_round"
                     },
                     {
                         "kind": "BLOCK",
@@ -178,11 +178,11 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                     },
                     {
                         "kind": "BLOCK",
-                        "type": "mathandom_int"
+                        "type": "math_random_int"
                     },
                     {
                         "kind": "BLOCK",
-                        "type": "mathandom_float"
+                        "type": "math_random_float"
                     },
                     {
                         "kind": "BLOCK",
@@ -260,7 +260,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                     },
                     {
                         "kind": "BLOCK",
-                        "type": "listsepeat"
+                        "type": "lists_repeat"
                     },
                     {
                         "kind": "BLOCK",
@@ -318,29 +318,30 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 "name": "LISTS",
                 "colour": "260"
             },
-            {
-                "kind": "CATEGORY",
-                "contents": [
-                    {
-                        "kind": "BLOCK",
-                        "type": "colour_picker"
-                    },
-                    {
-                        "kind": "BLOCK",
-                        "type": "colourandom"
-                    },
-                    {
-                        "kind": "BLOCK",
-                        "type": "colourgb"
-                    },
-                    {
-                        "kind": "BLOCK",
-                        "type": "colour_blend"
-                    }
-                ],
-                "name": "COLOUR",
-                "colour": "20"
-            },
+            // TODO: color category now throwing error
+            // {
+            //     "kind": "CATEGORY",
+            //     "contents": [
+            //         {
+            //             "kind": "BLOCK",
+            //             "type": "colour_picker"
+            //         },
+            //         {
+            //             "kind": "BLOCK",
+            //             "type": "colour_random"
+            //         },
+            //         {
+            //             "kind": "BLOCK",
+            //             "type": "colour_rgb"
+            //         },
+            //         {
+            //             "kind": "BLOCK",
+            //             "type": "colour_blend"
+            //         }
+            //     ],
+            //     "name": "COLOUR",
+            //     "colour": "20"
+            // },
             {
                 "kind": "CATEGORY",
                 "contents": [
@@ -494,17 +495,18 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://cran.r-project.org/manuals.html");
             },
         };
-        RGenerator[blockName] = ((block: Blockly.Block): string | string[] => {
+        // RGenerator[blockName] = ((block: Blockly.Block): string | string[] => {
+        rGenerator.forBlock[blockName] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
             const userCode: string = block.getFieldValue("CODE").toString();
             let code: string;
             if (hasInput) {
-                const input_1: string = RGenerator.valueToCode(block, "INPUT", RGenerator.ORDER_ATOMIC);
+                const input_1: string = generator.valueToCode(block, "INPUT", Order.ATOMIC);
                 code = ((userCode + " ") + input_1).trim();
             }
             else {
                 code = userCode.trim();
             }
-            return hasOutput ? [code, RGenerator.ORDER_ATOMIC] : (code + "\n");
+            return hasOutput ? [code, Order.ATOMIC] : (code + "\n");
         });
     }
 
@@ -533,17 +535,18 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://cran.r-project.org/manuals.html");
             },
         };
-        RGenerator[blockName] = ((block: Blockly.Block): string | string[] => {
+        // RGenerator[blockName] = ((block: Blockly.Block): string | string[] => {
+        rGenerator.forBlock[blockName] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
             const userCode: string = block.getFieldValue("COMMENT").toString();
             let code: string;
             if (hasInput) {
-                const input_1: string = RGenerator.valueToCode(block, "INPUT", RGenerator.ORDER_ATOMIC);
+                const input_1: string = generator.valueToCode(block, "INPUT", Order.ATOMIC);
                 code = (("# " + userCode + " ") + input_1).trim();
             }
             else {
                 code = "# " + userCode.trim();
             }
-            return hasOutput ? [code, RGenerator.ORDER_ATOMIC] : (code + "\n");
+            return hasOutput ? [code, Order.ATOMIC] : (code + "\n");
         });
     }
 
@@ -561,8 +564,9 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://stat.ethz.ch/R-manual/R-devel/library/base/html/library.html");
             },
         };
-        RGenerator[blockName] = ((block: Blockly.Block): string => {
-            let libraryVar = RGenerator.getVariableName(block.getFieldValue("libraryName"));
+        // RGenerator[blockName] = ((block: Blockly.Block): string => {
+        rGenerator.forBlock[blockName] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
+            let libraryVar = generator.getVariableName(block.getFieldValue("libraryName"));
             let code = "library(" + libraryVar + ")\n";
             return code;
         });
@@ -589,10 +593,11 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl(helpurl);
             },
         };
-        RGenerator[blockName] = ((block: Blockly.Block): string[] => {
-            const valueCode = RGenerator.valueToCode(block, "x", RGenerator.ORDER_MEMBER);
+        // RGenerator[blockName] = ((block: Blockly.Block): string[] => {
+        rGenerator.forBlock[blockName] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
+            const valueCode = generator.valueToCode(block, "x", Order.MEMBER);
             const sanitizedValueCode = valueCode.replace(/^\[|\]$/g, "");
-            return [`${functionStr}(${sanitizedValueCode})`, RGenerator.ORDER_FUNCTION_CALL];
+            return [`${functionStr}(${sanitizedValueCode})`, Order.FUNCTION_CALL];
         });
     }
 
@@ -610,14 +615,14 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
         //-------------------------------------
         // We use @ts-ignore to override the protected class attributes we need to modify; an alternative would be to extend RGenerator and then do these overrides within that new class
 
-        RGenerator.finish = ((code: string): string => {
+        rGenerator.finish = ((code: string): string => {
             const imports: string[] = [];
             const functions: string[] = [];
             // @ts-ignore
-            let enumerator: any = Object.keys(RGenerator.definitions_);
+            let enumerator: any = Object.keys(rGenerator.definitions_);
             for (let i in enumerator) {
                 // @ts-ignore
-                const definitions: any = RGenerator.definitions_;
+                const definitions: any = rGenerator.definitions_;
                 const def: string = definitions[enumerator[i]];
                 if (def.indexOf("library(") >= 0) {
                     void (imports.push(def));
@@ -627,11 +632,11 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 }
             }
             // @ts-ignore
-            delete RGenerator.definitions_;
+            delete rGenerator.definitions_;
             // @ts-ignore
-            delete RGenerator.functionNames_;
+            delete rGenerator.functionNames_;
             // @ts-ignore
-            RGenerator.nameDB_.reset();
+            rGenerator.nameDB_.reset();
             return ((("\n" + imports) + ("\n" + functions)) + "\n\n") + code;
         });
 
@@ -652,10 +657,11 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://stackoverflow.com/a/9069670");
             },
         };
-        RGenerator["textFromFile"] = ((block: Blockly.Block): string[] => {
-            const fileName: string = RGenerator.valueToCode(block, "FILENAME", RGenerator.ORDER_ATOMIC);
+        // RGenerator["textFromFile"] = ((block: Blockly.Block): string[] => {
+        rGenerator.forBlock["textFromFile"] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
+            const fileName: string = generator.valueToCode(block, "FILENAME", Order.ATOMIC);
             const code = "readChar(" + fileName + ", file.info(" + fileName + ")$size)";
-            return [code, RGenerator.ORDER_FUNCTION_CALL];
+            return [code, Order.FUNCTION_CALL];
         });
 
         Blockly.Blocks["readFile"] = {
@@ -668,10 +674,11 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://stat.ethz.ch/R-manual/R-devel/library/base/html/connections.html");
             },
         };
-        RGenerator["readFile"] = ((block: Blockly.Block): string[] => {
-            let fileName = RGenerator.valueToCode(block, "FILENAME", RGenerator.ORDER_ATOMIC);
+        // RGenerator["readFile"] = ((block: Blockly.Block): string[] => {
+        rGenerator.forBlock["readFile"] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
+            let fileName = generator.valueToCode(block, "FILENAME", Order.ATOMIC);
             let code = "file(" + fileName + ", 'rt')";
-            return [code, RGenerator.ORDER_FUNCTION_CALL];
+            return [code, Order.FUNCTION_CALL];
         });
 
         Blockly.Blocks["indexer"] = {
@@ -685,11 +692,12 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://cran.r-project.org/doc/manuals/R-lang.html#Indexing");
             },
         };
-        RGenerator["indexer"] = ((block: Blockly.Block): string[] => {
+        // RGenerator["indexer"] = ((block: Blockly.Block): string[] => {
+        rGenerator.forBlock["indexer"] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
             let varName = block.getFieldValue("VAR").toString();
-            let input = RGenerator.valueToCode(block, "INDEX", RGenerator.ORDER_ATOMIC);
+            let input = generator.valueToCode(block, "INDEX", Order.ATOMIC);
             let code = varName + "[" + input + "]" //+ "\n"
-            return [code, RGenerator.ORDER_ATOMIC];
+            return [code, Order.ATOMIC];
         });
 
         Blockly.Blocks["doubleIndexer"] = {
@@ -703,11 +711,12 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://cran.r-project.org/doc/manuals/R-lang.html#Indexing");
             },
         };
-        RGenerator["doubleIndexer"] = ((block: Blockly.Block): string[] => {
+        // RGenerator["doubleIndexer"] = ((block: Blockly.Block): string[] => {
+        rGenerator.forBlock["doubleIndexer"] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
             let varName = block.getFieldValue("VAR").toString();
-            let input = RGenerator.valueToCode(block, "INDEX", RGenerator.ORDER_ATOMIC);
+            let input = generator.valueToCode(block, "INDEX", Order.ATOMIC);
             let code = varName + "[[" + input + "]]" //+ "\n"
-            return [code, RGenerator.ORDER_ATOMIC];
+            return [code, Order.ATOMIC];
         });
 
         Blockly.Blocks["unlistBlock"] = {
@@ -720,10 +729,11 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/unlist");
             },
         };
-        RGenerator["unlistBlock"] = ((block: Blockly.Block): string[] => {
-            let args = RGenerator.valueToCode(block, "LIST", RGenerator.ORDER_MEMBER);
+        // RGenerator["unlistBlock"] = ((block: Blockly.Block): string[] => {
+        rGenerator.forBlock["unlistBlock"] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
+            let args = generator.valueToCode(block, "LIST", Order.MEMBER);
             let code = "unlist(" + args + ", use.names = FALSE)";
-            return [code, RGenerator.ORDER_FUNCTION_CALL];
+            return [code, Order.FUNCTION_CALL];
         });
 
         Blockly.Blocks["uniqueBlock"] = {
@@ -736,10 +746,11 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 this.setHelpUrl("https://stackoverflow.com/questions/3879522/finding-unique-values-from-a-list");
             },
         };
-        RGenerator["uniqueBlock"] = ((block: Blockly.Block): string[] => {
-            let args = RGenerator.valueToCode(block, "LIST", RGenerator.ORDER_MEMBER);
+        // RGenerator["uniqueBlock"] = ((block: Blockly.Block): string[] => {
+        rGenerator.forBlock["uniqueBlock"] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
+            let args = generator.valueToCode(block, "LIST", Order.MEMBER);
             let code = "unique(unlist(" + args + ", use.names = FALSE))"
-            return [code, RGenerator.ORDER_FUNCTION_CALL];
+            return [code, Order.FUNCTION_CALL];
         });
 
         //Special blocks
@@ -757,17 +768,19 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 Blockly.Extensions.apply("pipeMutator", this, true);
             }
         }
-        RGenerator["pipe"] = ((block: any): string[] => {
+        // RGenerator["pipe"] = ((block: any): string[] => {
+        rGenerator.forBlock["pipe"] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
             const elements: string[] = [];
-            const itemCount = block.itemCount_;
+            let jmm = block as JoinMutatorBlock;
+            const itemCount = jmm.itemCount_;
             for (let i = 0; i < itemCount; i++) {
-                const addValue = RGenerator.valueToCode(block, "ADD" + i, RGenerator.ORDER_COMMA);
+                const addValue = generator.valueToCode(block, "ADD" + i, Order.COMMA);
                 elements.push(addValue);
             }
             const elementString = elements.join(" %>%\n    ");
-            const inputCode = RGenerator.valueToCode(block, "INPUT", RGenerator.ORDER_MEMBER);
+            const inputCode = generator.valueToCode(block, "INPUT", Order.MEMBER);
             const outputCode = `${inputCode} %>%\n    ${elementString}`;
-            return [outputCode, RGenerator.ORDER_FUNCTION_CALL];
+            return [outputCode, Order.FUNCTION_CALL];
         });
 
         Blockly.Blocks["ggplot_plus"] = Blockly.Blocks["lists_create_with"];
@@ -784,17 +797,19 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 Blockly.Extensions.apply("plusMutator", this, true);
             }
         }
-        RGenerator["ggplot_plus"] = ((block: any): string[] => {
+        // RGenerator["ggplot_plus"] = ((block: any): string[] => {
+            rGenerator.forBlock["ggplot_plus"] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
             const elements: string[] = [];
-            const itemCount = block.itemCount_;
+            let jmm = block as JoinMutatorBlock;
+            const itemCount = jmm.itemCount_;
             for (let i = 0; i < itemCount; i++) {
-                const addValue = RGenerator.valueToCode(block, "ADD" + i, RGenerator.ORDER_COMMA);
+                const addValue = generator.valueToCode(block, "ADD" + i, Order.COMMA);
                 elements.push(addValue);
             }
             const elementString = elements.join(" +\n    ");
-            const inputCode = RGenerator.valueToCode(block, "INPUT", RGenerator.ORDER_MEMBER);
+            const inputCode = generator.valueToCode(block, "INPUT", Order.MEMBER);
             const outputCode = `${inputCode} +\n    ${elementString}`;
-            return [outputCode, RGenerator.ORDER_FUNCTION_CALL];
+            return [outputCode, Order.FUNCTION_CALL];
         });
 
         //make all varieties of code block
@@ -867,7 +882,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
     }
 
     registerMemberIntellisenseCodeGenerator(blockName: string, hasArgs: boolean, hasDot: boolean) {
-        RGenerator[blockName] = ((block: Blockly.Block, generator: any): [string, number] | string => {
+        rGenerator.forBlock[blockName] = ((block: Blockly.Block, generator: any): [string, number] | string => {
             return this.generateMemberIntellisenseCode(block, generator, hasArgs, hasDot)
         });
     };

@@ -444,6 +444,8 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
  * @returns 
  */
 export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean {
+  // STOPPED HERE: kernel change event does not get thrown on notebook change; need to update toolbox for kernel here as well
+  // also need to fix :: for R in AbstractToolbox
   const blocklyWidget: BlocklyWidget = this;
   if( sender.currentWidget != null) {
     console.log("jupyterlab_blockly_polyglot_extension: notebook changed to " +  sender.currentWidget.context.path);
