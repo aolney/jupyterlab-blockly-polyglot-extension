@@ -164,6 +164,12 @@ export abstract class AbstractToolbox {
    */
   abstract GetChildrenInspections(parent: IntellisenseEntry, children: string[]): Promise<string>[]
   /**
+   * On inspection, get a clean name for the child that can be displayed on an intelliblock.
+   * Different languages have different handling of this.
+   * @param childCompletion 
+   */
+  abstract GetCleanChildName(childCompletion: string) : string;
+  /**
    * Set up the language specific generator. Needed for adding new blocks to the generator in language subclasses
    */
   abstract InitializeGenerator(): void;
@@ -285,16 +291,17 @@ export abstract class AbstractToolbox {
           Promise.allSettled(pr).then((results: PromiseSettledResult<string>[]) => {
             // Create an intellisense entries for children, sorted alphabetically
             let children: IntellisenseEntry[] = safeCompletions.map((childCompletion: string, index: number) => {
+              let childName = this.GetCleanChildName(childCompletion)
               let info = "";
               let isFunction = true;
               let isClass = false;
               if (results[index].status === "fulfilled") {
                 info = (results[index] as PromiseFulfilledResult<string>).value;
                 //TODO: R implementation asks for additional parameter; might be workaround
-                isFunction = this.isFunction(parentName, info);
+                isFunction = this.isFunction(childName, info);
                 isClass = this.isClass(info);
               }
-              return new IntellisenseEntry(childCompletion, info, isFunction, isClass)
+              return new IntellisenseEntry(childName, info, isFunction, isClass)
             }).sort((a, b) => (a.Name < b.Name ? -1 : 1));
             // Package up IntellisenseVariable (parent + children)
             let intellisenseVariable: IntellisenseVariable = new IntellisenseVariable(parent, children);

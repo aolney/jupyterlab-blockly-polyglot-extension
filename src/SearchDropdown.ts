@@ -126,11 +126,17 @@ export class CustomFieldFilter extends Blockly.FieldTextInput {
     this.WORDS = this.INITWORDS;
     var optionsLength = this.WORDS.length;
     var height = 18 * optionsLength;
+    // this.imageElement_.style.cssText =
+    // 'border: 1px solid #ccc;height: ' +
+    // height +
+    // 'px;width: 150px;font-size: 12pt;padding: 0px;font: normal 12pt sans-serif'; 
+
     this.imageElement_.style.cssText =
       'border: 1px solid #ccc;height: ' +
       height +
-      'px;width: 150px;font-size: 12px;padding: 0px;font: normal 12pt sans-serif'; //font-family: sans-serif';
-    this.imageElement_.innerHTML = this.WORDS.join('<br>');
+      'px;width: 150px;font-size: 14.67px;padding: 0px';
+ 
+      this.imageElement_.innerHTML = this.WORDS.join("<br>");
     return this.imageElement_;
   }
 
@@ -203,7 +209,12 @@ export class CustomFieldFilter extends Blockly.FieldTextInput {
       this.imageElement_.style.cssText =
       'border: 1px solid #ccc;height: ' +
       height +
-      'px;width: 150px;font-size: 12px;padding: 0px';
+      'px;width: 150px;font-size: 14.67px;padding: 0px';
+    //   this.imageElement_.style.cssText =
+    // 'border: 1px solid #ccc;height: ' +
+    // height +
+    // 'px;width: 150px;font-size: 12pt;padding: 0px;font: normal 12pt sans-serif'; 
+
       this.imageElement_.innerHTML = this.WORDS.join("<br>");
     }
     return i > -1 ? 0 : -1;

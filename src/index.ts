@@ -151,6 +151,8 @@ export class BlocklyWidget extends Widget {
         // this.toolbox.GreyOutBlocks([]);
       }
     }
+
+    console.log("jupyterlab_blockly_polyglot_extension: Attaching toolbox for " + `${kernelName}`);
   }
 
   /**
@@ -421,11 +423,12 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
   // if (widget.notHooked) {
     if(sender.session?.kernel != null ) {
       //listend for kernel messages
-      sender.session.kernel.iopubMessage.connect(widget.onKernelExecuted(), widget);
-      console.log("jupyterlab_blockly_polyglot_extension: Listening for kernel messages");
+      let connection_status = sender.session.kernel.iopubMessage.connect(widget.onKernelExecuted(), widget);
+      console.log(`jupyterlab_blockly_polyglot_extension: onKernelExecuted event is ${connection_status ? "now": "already"} connected for ${sender.session.kernel.name}`);
+      // console.log("jupyterlab_blockly_polyglot_extension: Listening for kernel messages");
       //connect appropriate toolbox
       widget.GetToolBox(sender.session.kernel.name);
-      console.log("jupyterlab_blockly_polyglot_extension: Attaching toolbox for " + `${sender.session.kernel.name}`);
+      // console.log("jupyterlab_blockly_polyglot_extension: Attaching toolbox for " + `${sender.session.kernel.name}`);
       
       // widget.notHooked = false;
     }
@@ -444,13 +447,20 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
  * @returns 
  */
 export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean {
-  // STOPPED HERE: kernel change event does not get thrown on notebook change; need to update toolbox for kernel here as well
-  // also need to fix :: for R in AbstractToolbox
   const blocklyWidget: BlocklyWidget = this;
   if( sender.currentWidget != null) {
     console.log("jupyterlab_blockly_polyglot_extension: notebook changed to " +  sender.currentWidget.context.path);
     // LogToServer(JupyterLogEntry082720_Create("notebook-changed", notebook.context.path));
-    sender.currentWidget.sessionContext.kernelChanged.connect(onKernelChanged, blocklyWidget);
+    let connection_status = sender.currentWidget.sessionContext.kernelChanged.connect(onKernelChanged, blocklyWidget);
+    console.log(`jupyterlab_blockly_polyglot_extension: kernelChanged event is ${connection_status ? "now": "already"} connected`);
+
+    //onKernelChanged will only fire the first time a kernel is loaded
+    //so if a user switches back and forth between notebooks with different kernels that are
+    //already loaded, we need to catch that here to update the toolbox
+    // if the kernel is known, update the toolbox
+    if(sender.currentWidget.sessionContext?.session?.kernel?.name){
+      blocklyWidget.GetToolBox(sender.currentWidget.sessionContext?.session?.kernel?.name);
+    }
   }
   return true;
 };

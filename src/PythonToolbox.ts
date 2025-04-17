@@ -468,6 +468,10 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         return pr;
     }
 
+    GetCleanChildName(childCompletion: string) {
+        return childCompletion;
+    }
+
     /**
      * A template to create arbitrary code blocks (FREESTYLE) in these dimensions: dummy/input; output/nooutput
      * @param blockName 

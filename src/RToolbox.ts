@@ -469,6 +469,20 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
         return pr;
     }
 
+    GetCleanChildName(childCompletion: string) {
+        //remove parent prefix, e.g. dplyr::select
+        const index = childCompletion.lastIndexOf(":");
+        let cleanName = "";
+        if(index < 0) {
+            cleanName = childCompletion;
+        }
+        else {
+            cleanName = childCompletion.substring(index+1);
+        }
+        return cleanName;
+    }
+
+
 
     /**
      * A template to create arbitrary code blocks (FREESTYLE) in these dimensions: dummy/input; output/nooutput
