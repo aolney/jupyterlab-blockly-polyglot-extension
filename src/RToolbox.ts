@@ -897,7 +897,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
 
     registerMemberIntellisenseCodeGenerator(blockName: string, hasArgs: boolean, hasDot: boolean) {
         rGenerator.forBlock[blockName] = ((block: Blockly.Block, generator: any): [string, number] | string => {
-            return this.generateMemberIntellisenseCode(block, generator, hasArgs, hasDot)
+            return this.generateMemberIntellisenseCode(block, Order.FUNCTION_CALL, generator, hasArgs, hasDot)
         });
     };
 

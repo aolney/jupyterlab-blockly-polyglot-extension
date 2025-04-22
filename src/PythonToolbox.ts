@@ -970,7 +970,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
 
     registerMemberIntellisenseCodeGenerator(blockName: string, hasArgs: boolean, hasDot: boolean) {
         pythonGenerator.forBlock[blockName] = ((block: Blockly.Block, generator): [string, number] | string => {
-            return this.generateMemberIntellisenseCode(block, generator, hasArgs, hasDot)
+            return this.generateMemberIntellisenseCode(block, Order.FUNCTION_CALL, generator, hasArgs, hasDot)
         });
     };
 }

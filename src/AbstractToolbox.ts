@@ -943,14 +943,16 @@ export abstract class AbstractToolbox {
 
   /**
    * Provide default implementation for code generation of a member intellisense block. Unfortuately we cannot
-   * have the entire implementation in AbstractToolbox because blockly can't cast, e.g. PythonGenerator to CodeGenerator 
+   * have the entire implementation in AbstractToolbox because blockly can't upcast, e.g. PythonGenerator to CodeGenerator.
+   * Also passing order here allows us to keep order in the subclass where it belongs.
    * @param block 
+   * @param order 
    * @param generator 
    * @param hasArgs 
    * @param hasDot 
    * @returns 
    */
-  generateMemberIntellisenseCode(block: Blockly.Block, generator: IGenerator, hasArgs: boolean, hasDot: boolean): [string, number] | string {
+  generateMemberIntellisenseCode(block: Blockly.Block, order: number, generator: IGenerator, hasArgs: boolean, hasDot: boolean): [string, number] | string {
     if (this.generator != null) {
       // get the variable and member names
       const varName: string | undefined = this.generator.getVariableName(block.getFieldValue("VAR"));
@@ -975,10 +977,12 @@ export abstract class AbstractToolbox {
       } else {
         code = varName + (hasDot ? this.dotString() : "") + memberName;
       }
-      return code;
+      // return code;
+      return [code, order];
     }
     else
-      return "";
+      // return "";
+      return ["", order];
   }
 
   /**
