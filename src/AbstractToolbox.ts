@@ -189,7 +189,9 @@ export abstract class AbstractToolbox {
    */
   DecodeWorkspace(xmlText: string): void {
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+    // Transitional: remove block suffixes from earlier versions
+    let cleanXml = xmlText.replace("_Python","").replace("_R","");
+    const xmlDoc = parser.parseFromString(cleanXml, 'application/xml');
     const xmlElement = xmlDoc.documentElement;
     Blockly.Xml.domToWorkspace(xmlElement, Blockly.getMainWorkspace() as Blockly.WorkspaceSvg);
   }

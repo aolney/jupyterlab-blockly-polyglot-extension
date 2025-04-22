@@ -253,7 +253,18 @@ export class BlocklyWidget extends Widget {
   onAfterAttach(): void {
 
     //toolbox can't be null or blockly throws errors
-    let starterToolbox =  { "kind": "categoryToolbox",  "contents": [] };
+    // let starterToolbox =  { "kind": "categoryToolbox",  "contents": [] };
+    // Sneak in a message to users who don't understand interface
+    let starterToolbox =  { "kind": "categoryToolbox",  
+      "contents": [
+        { "kind": "CATEGORY", "contents": [], "colour": 20, "name":"OPEN" },
+        { "kind": "CATEGORY", "contents": [], "colour": 70, "name":"A" },
+        { "kind": "CATEGORY", "contents": [], "colour": 120, "name":"NOTEBOOK" },
+        { "kind": "CATEGORY", "contents": [], "colour": 170, "name":"TO" },
+        { "kind": "CATEGORY", "contents": [], "colour": 220, "name":"USE" },
+        { "kind": "CATEGORY", "contents": [], "colour": 270, "name":"BLOCKLY" },
+      ] 
+    };
     this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: starterToolbox});
 
     // TODO: move toolbox initialization elsewhere; should change with kernel
