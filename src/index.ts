@@ -163,7 +163,10 @@ export class BlocklyWidget extends Widget {
     const blocks = workspace.getAllBlocks(false);
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i];
-      block.dispose(false);
+      //looks like disposing chains to child blocks, so check block exists b/f disposing
+      if(workspace.getBlockById(block.id)) {
+        block.dispose(false);
+      }
     }
   }
 
