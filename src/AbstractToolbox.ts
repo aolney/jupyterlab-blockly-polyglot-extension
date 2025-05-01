@@ -577,9 +577,10 @@ export abstract class AbstractToolbox {
    */
   getIntellisenseVarTooltip(varName: string): string {
     const intellisense_variable: IntellisenseVariable | undefined = this.intellisenseLookup.get(varName);
-    //if in cache/defined, return its info
+    //if in cache/defined, return its info (we truncate to first 20 lines)
     if (intellisense_variable) {
-      return intellisense_variable.VariableEntry.Info;
+      let leading_info = intellisense_variable.VariableEntry.Info.split('\n').slice(0,20)
+      return leading_info.join('\n');
     } else {
       return "!Not defined until you execute code.";
     }
@@ -598,9 +599,10 @@ export abstract class AbstractToolbox {
     if (intellisense_variable) {
       const child: IntellisenseEntry | undefined = intellisense_variable?.ChildEntries.find(c => c.Name === memberName);
 
-      //if found, return its info
+      //if found, return its info (we truncate to first 20 lines)
       if (child) {
-        return child.Info;
+        let leading_info = child.Info.split('\n').slice(0,20)
+        return leading_info.join('\n');
       } else {
         return "!Not defined until you execute code.";
       }
@@ -944,7 +946,7 @@ export abstract class AbstractToolbox {
   /**
    * Provide default implementation for code generation of a member intellisense block. Unfortuately we cannot
    * have the entire implementation in AbstractToolbox because blockly can't upcast, e.g. PythonGenerator to CodeGenerator.
-   * Also passing order here allows us to keep order in the subclass where it belongs.
+   * Also passing order here allows us to keep order in the subclass where it belongs.\
    * @param block 
    * @param order 
    * @param generator 
