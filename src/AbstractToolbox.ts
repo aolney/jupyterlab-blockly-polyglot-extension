@@ -244,7 +244,7 @@ export abstract class AbstractToolbox {
       return [["!Waiting for kernel to respond with options.", "!Waiting for kernel to respond with options."]];
     }
     else {
-      return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
+      return [["!Not defined until you execute code A.", "!Not defined until you execute code."]];
     }
   }
 
@@ -559,14 +559,14 @@ export abstract class AbstractToolbox {
         return intellisense_variable.ChildEntries.filter(memberSelectionFunction).map((ie: IntellisenseEntry) => [ie.Name, ie.Name]);
         //if it is in the cache but undefined, return that message
       } else if (intellisense_variable.VariableEntry.Info === "UNDEFINED") {
-        return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
+        return [["!Not defined until you execute code B.", "!Not defined until you execute code."]];
         //something's wrong, likely we have no properties to show
       } else {
         return [["!No properties available.", "!No properties available."]];
       }
       //it's not defined/ not in cache
     } else {
-      return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
+      return [["!Not defined until you execute code C.", "!Not defined until you execute code."]];
     }
   }
 
@@ -790,7 +790,15 @@ export abstract class AbstractToolbox {
         const flatOptions: string[] = optionsFunction(varUserName).map(arr => arr[0]);
 
         // Restore stored value from XML if it exists
-        const dataString: string = block.data ?? "";
+        let dataString: string = block.data ?? "";
+
+        // if the stored value is a junk value, ignore it
+        if (dataString.indexOf(":") >= 0) {
+          let payload = dataString.split(":")[1]
+          if( payload.startsWith("!") ) {
+            dataString = dataString.split(":")[0] + ":"
+          }
+        }
 
         // We must enforce a default selection for the UI to match user expectations. When a dropdown appears, the first option is highlighted by default as though it is selected by default. We also have to reify and persist this selection to block.data for proper blocks to code behavior when no selection has been made by the user
         let defaultSelection: string = "";
