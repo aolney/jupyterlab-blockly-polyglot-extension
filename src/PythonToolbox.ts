@@ -437,13 +437,43 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         super(notebooks, workspace);
     }
 
+    // We match against docstrings to determine type, cf. https://github.com/rr-/docstring_parser/blob/master/docstring_parser/epydoc.pyhttps://github.com/rr-/docstring_parser/blob/master/docstring_parser/epydoc.py
+    // This is a moving target absent standardization, so if intelliblocks are not 
+    // correctly sorting types, this is the first place to check
+    // May 2025:
+    // Pandas:
+    // Use IndexSlice as canonical property: 'Type:'
+    // array and concat as canonical functions: 'Signature:' and 'Type:     function'
+    // ArrowDType as canonical class: 'signature:' and 'Type:     type'
+    // Numpy:
+    // Use int16 as canoncial class: 'signature:' and 'Type:     type'
+    // Use abs as canonical function: 'signature:' and 'Type:     ufunc'
+    // asarray and array both have 'Type:     ufunc' but no signature, so remove signature requirement
 
+
+    function_regex = /\btype:[^\n]*func/i;
     isFunction(query: string, info: string): boolean {
-        return (info.includes("Signature:") && info.includes("function")) || (info.includes("Signature:") && info.includes("method"));
+        let debug = this.function_regex.test(info);
+        debug.valueOf();
+        // functions have function type; we ignore signature/method/parameter matches because numpy seems to skip these in some cases
+        return this.function_regex.test(info); 
+        // old metho
+        // return (info.includes("Signature:") && info.includes("function")) || (info.includes("Signature:") && info.includes("method"));
     }
 
+    isProperty(info: string): boolean {
+        // properties don't have parameters or a signature
+        return !info.includes("Parameters") && !info.includes("ignature:");
+    }
+
+    class_regex = /\btype:[^\n]*type/i;
     isClass(info: string): boolean {
-        return info.includes("signature:") && info.includes("class");
+        let debug = this.class_regex.test(info);
+        debug.valueOf();
+        // constructors have signatures but are not functions
+        return info.includes("ignature:") && !this.function_regex.test(info);  
+        // old method
+        // return info.includes("signature:") && info.includes("class");
     }
 
     dotString(): string {
@@ -957,7 +987,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
     DoFinalInitialization(): void {
 
         //make intellisense blocks
-        this.makeMemberIntellisenseBlock(this, "varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
+        this.makeMemberIntellisenseBlock(this, "varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => ie.isProperty, false, true);
         // this.registerMemberIntellisenseCodeGenerator("varGetProperty", false, true);
 
         this.makeMemberIntellisenseBlock(this, "varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);

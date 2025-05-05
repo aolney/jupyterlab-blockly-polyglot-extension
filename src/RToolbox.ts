@@ -442,6 +442,10 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
         }
     }
 
+    isProperty(info: string): boolean {
+        return false;
+    }
+
     isClass(info: string): boolean {
         return !this.isFunction("", info);
     }

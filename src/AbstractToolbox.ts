@@ -41,11 +41,13 @@ export class IntellisenseEntry {
   readonly Name: string;
   readonly Info: string;
   readonly isFunction: boolean;
+  readonly isProperty: boolean;
   readonly isClass: boolean;
-  constructor(Name: string, Info: string, isFunction: boolean, isClass: boolean) {
+  constructor(Name: string, Info: string, isFunction: boolean, isProperty: boolean, isClass: boolean) {
     this.Name = Name;
     this.Info = Info;
     this.isFunction = isFunction;
+    this.isProperty = isProperty;
     this.isClass = isClass;
   }
 }
@@ -137,10 +139,18 @@ export abstract class AbstractToolbox {
   }
 
   /**
-   * Determine if entity is a function using inspection info; language specific
+   * Determine if entity is a function using inspection info; language specific.
+   * A type map is currently only provided by the latest IPython kernel using the completer reply 
+   * metadata field _jupyter_types_experimental; as a result, we have to parse the inspection/info
+   * to determine type
    * @param info 
    */
   abstract isFunction(query: string, info: string): boolean;
+  /**
+   * Determine if entity is a property using inspection info; language specific.
+   * @param info 
+   */
+  abstract isProperty(info: string): boolean;
   /**
    * Determine if entity is a class using inspection info; language specific
    * @param info 
@@ -244,7 +254,7 @@ export abstract class AbstractToolbox {
       return [["!Waiting for kernel to respond with options.", "!Waiting for kernel to respond with options."]];
     }
     else {
-      return [["!Not defined until you execute code A.", "!Not defined until you execute code."]];
+      return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
     }
   }
 
@@ -260,7 +270,7 @@ export abstract class AbstractToolbox {
     // start by inspecting the parent 
     this.GetKernelInspection(parentName).then((parentInspection: string) => {
       // process the parent information
-      const parent: IntellisenseEntry = new IntellisenseEntry(parentName, parentInspection, this.isFunction(parentName, parentInspection), this.isClass(parentInspection));
+      const parent: IntellisenseEntry = new IntellisenseEntry(parentName, parentInspection, this.isFunction(parentName, parentInspection), this.isProperty( parentInspection), this.isClass(parentInspection));
 
       // Assume we need to get children
       let shouldGetChildren: boolean = true;
@@ -296,14 +306,22 @@ export abstract class AbstractToolbox {
               let childName = this.GetCleanChildName(childCompletion)
               let info = "";
               let isFunction = true;
+              let isProperty = false;
               let isClass = false;
               if (results[index].status === "fulfilled") {
                 info = (results[index] as PromiseFulfilledResult<string>).value;
-                //TODO: R implementation asks for additional parameter; might be workaround
+                //R implementation asks for additional parameter; so we include child name
                 isFunction = this.isFunction(childName, info);
+                isProperty = this.isProperty(info);
                 isClass = this.isClass(info);
+
+                //Sanity check: if property and class are false, force it to be function
+                if( !isFunction && !isProperty && !isClass ){
+                  isFunction = true;
+                  console.log(`Intelliblock type interpretation failed for ${parentName + this.dotString() + childName}; assuming is function`);
+                }
               }
-              return new IntellisenseEntry(childName, info, isFunction, isClass)
+              return new IntellisenseEntry(childName, info, isFunction, isProperty, isClass)
             }).sort((a, b) => (a.Name < b.Name ? -1 : 1));
             // Package up IntellisenseVariable (parent + children)
             let intellisenseVariable: IntellisenseVariable = new IntellisenseVariable(parent, children);
@@ -559,14 +577,14 @@ export abstract class AbstractToolbox {
         return intellisense_variable.ChildEntries.filter(memberSelectionFunction).map((ie: IntellisenseEntry) => [ie.Name, ie.Name]);
         //if it is in the cache but undefined, return that message
       } else if (intellisense_variable.VariableEntry.Info === "UNDEFINED") {
-        return [["!Not defined until you execute code B.", "!Not defined until you execute code."]];
+        return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
         //something's wrong, likely we have no properties to show
       } else {
-        return [["!No properties available.", "!No properties available."]];
+        return [["!No properties available. Did you execute code?", "!No properties available. Did you execute code?"]];
       }
       //it's not defined/ not in cache
     } else {
-      return [["!Not defined until you execute code C.", "!Not defined until you execute code."]];
+      return [["!Not defined until you execute code.", "!Not defined until you execute code."]];
     }
   }
 
