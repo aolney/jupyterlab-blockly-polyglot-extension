@@ -150,7 +150,7 @@ export abstract class AbstractToolbox {
    * Determine if entity is a property using inspection info; language specific.
    * @param info 
    */
-  abstract isProperty(info: string): boolean;
+  abstract isProperty(query: string, info: string): boolean;
   /**
    * Determine if entity is a class using inspection info; language specific
    * @param info 
@@ -270,7 +270,7 @@ export abstract class AbstractToolbox {
     // start by inspecting the parent 
     this.GetKernelInspection(parentName).then((parentInspection: string) => {
       // process the parent information
-      const parent: IntellisenseEntry = new IntellisenseEntry(parentName, parentInspection, this.isFunction(parentName, parentInspection), this.isProperty( parentInspection), this.isClass(parentInspection));
+      const parent: IntellisenseEntry = new IntellisenseEntry(parentName, parentInspection, this.isFunction(parentName, parentInspection), this.isProperty( parentName, parentInspection), this.isClass(parentInspection));
 
       // Assume we need to get children
       let shouldGetChildren: boolean = true;
@@ -312,7 +312,7 @@ export abstract class AbstractToolbox {
                 info = (results[index] as PromiseFulfilledResult<string>).value;
                 //R implementation asks for additional parameter; so we include child name
                 isFunction = this.isFunction(childName, info);
-                isProperty = this.isProperty(info);
+                isProperty = this.isProperty(childName,info);
                 isClass = this.isClass(info);
 
                 //Sanity check: if property and class are false, force it to be function

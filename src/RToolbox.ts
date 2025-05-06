@@ -442,7 +442,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
         }
     }
 
-    isProperty(info: string): boolean {
+    isProperty(query: string, info: string): boolean {
         return false;
     }
 

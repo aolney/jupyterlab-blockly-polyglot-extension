@@ -451,25 +451,27 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
     // asarray and array both have 'Type:     ufunc' but no signature, so remove signature requirement
 
 
-    function_regex = /\btype:[^\n]*func/i;
+    function_regex = /\btype:[^\n]*(func|method)/i;
     isFunction(query: string, info: string): boolean {
-        let debug = this.function_regex.test(info);
-        debug.valueOf();
+        // let debug = this.function_regex.test(info);
+        // debug.valueOf();
         // functions have function type; we ignore signature/method/parameter matches because numpy seems to skip these in some cases
         return this.function_regex.test(info); 
         // old metho
         // return (info.includes("Signature:") && info.includes("function")) || (info.includes("Signature:") && info.includes("method"));
     }
 
-    isProperty(info: string): boolean {
-        // properties don't have parameters or a signature
-        return !info.includes("Parameters") && !info.includes("ignature:");
+    isProperty(query: string, info: string): boolean {
+        // properties won't have examples of use with parameters
+        return !info.includes("." + query + "(");
+        // properties don't have parameters or a signature -- fails for loaded dataframe cols, whose infos are Series (class) plus annotation
+        // !info.includes("Parameters") && !info.includes("ignature:");
     }
 
     class_regex = /\btype:[^\n]*type/i;
     isClass(info: string): boolean {
-        let debug = this.class_regex.test(info);
-        debug.valueOf();
+        // let debug = this.class_regex.test(info);
+        // debug.valueOf();
         // constructors have signatures but are not functions
         return info.includes("ignature:") && !this.function_regex.test(info);  
         // old method

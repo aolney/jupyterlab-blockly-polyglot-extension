@@ -30,7 +30,7 @@ export class BlocklyWidget extends Widget {
   /**
    * Toolbox defining most blockly behavior, including language specific behavior
    */
-  toolbox:IToolbox | null;
+  toolbox: IToolbox | null;
   /**
    * Flag for  whether the widget is attached to Jupyter
    */
@@ -47,6 +47,10 @@ export class BlocklyWidget extends Widget {
    * blocks rendered flag for state managment. Set to false every time a block is created. Set to true when blocks have been deserialized OR have been serialized
    */
   blocksInSyncWithXML: boolean;
+    /**
+   * Only do auto code gen for these block events
+   */
+  codeGenBlockEvents : Set<string>
 
 
   constructor(notebooks: INotebookTracker) {
@@ -61,11 +65,20 @@ export class BlocklyWidget extends Widget {
     //listen for notebook cell changes
     this.notebooks.activeCellChanged.connect(this.onActiveCellChanged(), this);
 
+    //set initial state
     this.lastCell = null;
     this.blocksInSyncWithXML = false;
     this.workspace = null;
     this.toolbox = null;
     this.notHooked = true;
+
+    //define block events that trigger code gen
+    this.codeGenBlockEvents = new Set([
+      Blockly.Events.BLOCK_CHANGE,
+      Blockly.Events.BLOCK_CREATE,
+      Blockly.Events.BLOCK_DELETE,
+      Blockly.Events.BLOCK_MOVE,
+    ]);
 
     //---------------------
     // Widget UI in Jupyter
@@ -88,7 +101,7 @@ export class BlocklyWidget extends Widget {
     const blocksToCodeButton: any = document.createElement("button");
     blocksToCodeButton.innerText = "Blocks to Code";
     blocksToCodeButton.addEventListener("click", (_arg: any): void => {
-      this.BlocksToCode(this.notebooks.activeCell,true);
+      this.BlocksToCode(this.notebooks.activeCell, true);
     });
     buttonDiv.appendChild(blocksToCodeButton);
 
@@ -106,7 +119,7 @@ export class BlocklyWidget extends Widget {
     bugReportButton.addEventListener("click", (_arg_2: any): void => {
       const win: any = window.open("https://jupyterlab-blockly-polyglot-extension/issues", "_blank");
       win.focus();
-    });     
+    });
     buttonDiv.appendChild(bugReportButton);
 
     //checkbox for JLab sync (if cell is selected and has serialized blocks, decode them to workspace; if cell is empty, empty workspace)
@@ -120,6 +133,28 @@ export class BlocklyWidget extends Widget {
     buttonDiv.appendChild(syncCheckbox);
     buttonDiv.appendChild(syncCheckboxLabel);
 
+    //checkbox for automatically generating code when blocks changed (auto blocks to code)
+    const autoCodeGenCheckbox: any = document.createElement("input");
+    autoCodeGenCheckbox.setAttribute("type", "checkbox");
+    autoCodeGenCheckbox.checked = true;
+    autoCodeGenCheckbox.id = "autoCodeGenCheckboxPoly";
+    const autoCodeGenCheckboxLabel: any = document.createElement("label");
+    autoCodeGenCheckboxLabel.innerText = "Auto Blocks to Code";
+    autoCodeGenCheckboxLabel.setAttribute("for", "autoCodeGenCheckboxPoly");
+    buttonDiv.appendChild(autoCodeGenCheckbox);
+    buttonDiv.appendChild(autoCodeGenCheckboxLabel);
+
+    //TODO STOPPED HERE add checkbox listener; track state in class; check state in auto code gen handler
+    // checkbox.addEventListener('change', function(event) {
+    //   if (event.target.checked) {
+    //     // Checkbox is checked
+    //     console.log('Checkbox is checked');
+    //   } else {
+    //     // Checkbox is unchecked
+    //     console.log('Checkbox is unchecked');
+    //   }
+    // });
+
     this.node.appendChild(buttonDiv);
   }
 
@@ -127,23 +162,23 @@ export class BlocklyWidget extends Widget {
    * A kind of registry/factory that returns the correct toolbox given the name of the kernel
    * @param kernelName 
    */
-  GetToolBox( kernelName : string) {
-    if( this.workspace ) {
-      switch(true){
+  GetToolBox(kernelName: string) {
+    if (this.workspace) {
+      switch (true) {
         //R kernel
         case kernelName == "ir":
-          this.toolbox = new RToolbox(this.notebooks,this.workspace) as IToolbox;
+          this.toolbox = new RToolbox(this.notebooks, this.workspace) as IToolbox;
           break;
         // Python kernel
         case kernelName.toLocaleLowerCase().includes("python"):
-          this.toolbox = new PythonToolbox(this.notebooks,this.workspace) as IToolbox;
+          this.toolbox = new PythonToolbox(this.notebooks, this.workspace) as IToolbox;
           break;
         default:
           window.alert(`You are attempting to use Blockly Polyglot with unknown kernel ${kernelName}. No blocks are defined for this kernel.`);
 
       }
       //load the toolbox with blocks
-      if( this.toolbox ){
+      if (this.toolbox) {
         this.toolbox.UpdateToolbox();
 
         this.toolbox?.DoFinalInitialization();
@@ -164,7 +199,7 @@ export class BlocklyWidget extends Widget {
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i];
       //looks like disposing chains to child blocks, so check block exists b/f disposing
-      if(workspace.getBlockById(block.id)) {
+      if (workspace.getBlockById(block.id)) {
         block.dispose(false);
       }
     }
@@ -176,7 +211,7 @@ export class BlocklyWidget extends Widget {
   AreBlocksSaved(): boolean {
     const cellSerializedBlocks: string | null = this.GetActiveCellSerializedBlockXML();
     const workspaceSerializedBlocks = this.toolbox?.EncodeWorkspace();
-    if( cellSerializedBlocks && cellSerializedBlocks == workspaceSerializedBlocks) {
+    if (cellSerializedBlocks && cellSerializedBlocks == workspaceSerializedBlocks) {
       return true;
     } else {
       return false;
@@ -189,21 +224,21 @@ export class BlocklyWidget extends Widget {
    */
   onKernelExecuted(): ((arg0: Kernel.IKernelConnection, arg1: KernelMessage.IIOPubMessage<any>) => boolean) {
     return (sender: Kernel.IKernelConnection, args: KernelMessage.IIOPubMessage<any>): boolean => {
-        const messageType: string = args.header.msg_type.toString();
-        switch (messageType) {
-          case "execute_input": {
-              console.log(`jupyterlab_blockly_polyglot_extension: kernel '${sender.name}' executed code, updating intellisense`);
-            // LogToServer(JupyterLogEntry082720_Create("execute-code", args.content.code));
-            this.toolbox?.UpdateAllIntellisense();
-            break;
-          }
-          case "error": {
-            // LogToServer(JupyterLogEntry082720_Create("execute-code-error", JSON.stringify(args.content)));
-            break;
-          }
-          default: 0;
+      const messageType: string = args.header.msg_type.toString();
+      switch (messageType) {
+        case "execute_input": {
+          console.log(`jupyterlab_blockly_polyglot_extension: kernel '${sender.name}' executed code, updating intellisense`);
+          // LogToServer(JupyterLogEntry082720_Create("execute-code", args.content.code));
+          this.toolbox?.UpdateAllIntellisense();
+          break;
         }
-      
+        case "error": {
+          // LogToServer(JupyterLogEntry082720_Create("execute-code-error", JSON.stringify(args.content)));
+          break;
+        }
+        default: 0;
+      }
+
       return true;
     };
   };
@@ -258,20 +293,33 @@ export class BlocklyWidget extends Widget {
     //toolbox can't be null or blockly throws errors
     // let starterToolbox =  { "kind": "categoryToolbox",  "contents": [] };
     // Sneak in a message to users who don't understand interface
-    let starterToolbox =  { "kind": "categoryToolbox",  
+    let starterToolbox = {
+      "kind": "categoryToolbox",
       "contents": [
-        { "kind": "CATEGORY", "contents": [], "colour": 20, "name":"OPEN" },
-        { "kind": "CATEGORY", "contents": [], "colour": 70, "name":"A" },
-        { "kind": "CATEGORY", "contents": [], "colour": 120, "name":"NOTEBOOK" },
-        { "kind": "CATEGORY", "contents": [], "colour": 170, "name":"TO" },
-        { "kind": "CATEGORY", "contents": [], "colour": 220, "name":"USE" },
-        { "kind": "CATEGORY", "contents": [], "colour": 270, "name":"BLOCKLY" },
-      ] 
+        { "kind": "CATEGORY", "contents": [], "colour": 20, "name": "OPEN" },
+        { "kind": "CATEGORY", "contents": [], "colour": 70, "name": "A" },
+        { "kind": "CATEGORY", "contents": [], "colour": 120, "name": "NOTEBOOK" },
+        { "kind": "CATEGORY", "contents": [], "colour": 170, "name": "TO" },
+        { "kind": "CATEGORY", "contents": [], "colour": 220, "name": "USE" },
+        { "kind": "CATEGORY", "contents": [], "colour": 270, "name": "BLOCKLY" },
+      ]
     };
-    this.workspace = Blockly.inject("blocklyDivPoly", {toolbox: starterToolbox});
+    this.workspace = Blockly.inject("blocklyDivPoly", { toolbox: starterToolbox });
 
-    // TODO: move toolbox initialization elsewhere; should change with kernel
-    // console.log("jupyterlab_blockly_polyglot_extension: blockly palette initialized");
+    //2025-05-06 continuous code generation and execution, NOTE: experimental
+    const codeGenListener = (e: Blockly.Events.Abstract): void => {
+      if (this.workspace?.isDragging()) return; // Don't update while changes are happening.
+      if (!this.codeGenBlockEvents.has(e.type)) return;
+      // write code to active cell
+      this.BlocksToCode(this.notebooks.activeCell);
+
+      // experimental: execute code as well - only if this is not an intelliblock to avoid infinite loop
+      if(e.group != "INTELLISENSE" && e.type == "change" && (<Blockly.Events.BlockChange>e).name != "MEMBER"){
+        let code_to_execute = this.toolbox?.BlocksToCode() ?? "";
+        this.notebooks.currentWidget?.sessionContext.session?.kernel?.requestExecute({code: code_to_execute});// currentWidget.sessionContext
+      }
+    }
+    this.workspace.addChangeListener(codeGenListener);
 
     const logListener = (e: Blockly.Events.Abstract): void => {
       //TODO reconsider how blocksRendered is working
@@ -301,68 +349,68 @@ export class BlocklyWidget extends Widget {
     Blockly.svgResize(this.workspace as Blockly.WorkspaceSvg);
   }
 
-/**
- * Get the XML comment string of the active cell if the string exists
- * @returns 
- */
-GetActiveCellSerializedBlockXML(): string | null {
-  if (this.notebooks.activeCell) {
-    const cellText: string = this.notebooks.activeCell.model.sharedModel.getSource();
-    if (cellText.indexOf("xmlns") >= 0) {
-      const regex = /(<xml[\s\S]+<\/xml>)/;
-      let match = cellText.match(regex);
-      //if we match overall and the capture group, return the capture group
-      if (match && match[0]) {
-        return match[0]
+  /**
+   * Get the XML comment string of the active cell if the string exists
+   * @returns 
+   */
+  GetActiveCellSerializedBlockXML(): string | null {
+    if (this.notebooks.activeCell) {
+      const cellText: string = this.notebooks.activeCell.model.sharedModel.getSource();
+      if (cellText.indexOf("xmlns") >= 0) {
+        const regex = /(<xml[\s\S]+<\/xml>)/;
+        let match = cellText.match(regex);
+        //if we match overall and the capture group, return the capture group
+        if (match && match[0]) {
+          return match[0]
+        }
+      }
+      //No xml to match against
+      else {
+        return null;
       }
     }
-    //No xml to match against
+    //No active cell
+    return null;
+  }
+
+  /**
+   * Render blocks to code and serialize blocks at the same time. Do error checking to prevent user error IF this action was user-initiated (not autosave).
+   */
+  BlocksToCode(cell: Cell | null, userInitated: boolean = false): void {
+    const code: string = this.toolbox?.BlocksToCode() ?? "";
+    //this.generator.workspaceToCode(this.workspace);
+    if (cell != null) {
+      // if user called blocks to code on a markdown cell, complain
+      if (userInitated && cells.isMarkdownCellModel(cell.model)) {
+        window.alert("You are calling \'Blocks to Code\' on a MARKDOWN cell. Select an empty CODE cell and try again.");
+        // if this is a code cell, do blocks to code
+      } else if (cells.isCodeCellModel(cell.model)) {
+        let cell_contents = code + "\n#" + this.toolbox?.EncodeWorkspace();
+        this.notebooks.activeCell?.model.sharedModel.setSource(cell_contents);
+        console.log(("jupyterlab_blockly_polyglot_extension: wrote to cell\n" + code) + "\n");
+        // LogToServer(JupyterLogEntry082720_Create("blocks-to-code", this$.notebooks.activeCell.model.value.text));
+        this.blocksInSyncWithXML = true;
+      }
+    }
     else {
-      return null;
+      console.log(("jupyterlab_blockly_polyglot_extension: cell is null, could not execute blocks to code for\n" + code) + "\n");
     }
-  }
-  //No active cell
-  return null;
-}
+  };
 
-/**
- * Render blocks to code and serialize blocks at the same time. Do error checking to prevent user error IF this action was user-initiated (not autosave).
- */
-BlocksToCode(cell : Cell | null, userInitated: boolean = false): void {
-  const code: string = this.toolbox?.BlocksToCode() ?? "";
-  //this.generator.workspaceToCode(this.workspace);
-  if (cell != null) {
-    // if user called blocks to code on a markdown cell, complain
-    if( userInitated && cells.isMarkdownCellModel(cell.model) ) {
-      window.alert("You are calling \'Blocks to Code\' on a MARKDOWN cell. Select an empty CODE cell and try again.");
-    // if this is a code cell, do blocks to code
-    } else if(cells.isCodeCellModel(cell.model)) {
-      let cell_contents = code + "\n#" + this.toolbox?.EncodeWorkspace();
-      this.notebooks.activeCell?.model.sharedModel.setSource( cell_contents );
-      console.log(("jupyterlab_blockly_polyglot_extension: wrote to cell\n" + code) + "\n");
-      // LogToServer(JupyterLogEntry082720_Create("blocks-to-code", this$.notebooks.activeCell.model.value.text));
-      this.blocksInSyncWithXML = true;
-    }
-  }
-  else {
-    console.log(("jupyterlab_blockly_polyglot_extension: cell is null, could not execute blocks to code for\n" + code) + "\n");
-  }
-};
+  /**
+   * Render blocks in workspace using xml. Defaults to xml present in active cell
+   */
+  DeserializeBlocksFromXML(): void {
+    if (this.notebooks.activeCell) {
+      const xmlString = this.GetActiveCellSerializedBlockXML();
+      if (xmlString != null) {
+        try {
+          //clear existing blocks so we don't junk up the workspace
+          this.clearBlocks();
 
-/**
- * Render blocks in workspace using xml. Defaults to xml present in active cell
- */
-DeserializeBlocksFromXML(): void {
-  if (this.notebooks.activeCell) {
-    const xmlString = this.GetActiveCellSerializedBlockXML();
-    if( xmlString != null ){
-      try {
-        //clear existing blocks so we don't junk up the workspace
-        this.clearBlocks();
+          this.toolbox?.DecodeWorkspace(xmlString)
 
-        this.toolbox?.DecodeWorkspace(xmlString)
-
-        // LogToServer(JupyterLogEntry082720_Create("xml-to-blocks", xmlString));
+          // LogToServer(JupyterLogEntry082720_Create("xml-to-blocks", xmlString));
         } catch (e: any) {
           window.alert("Unable to perform \'Code to Blocks\': XML is either invald or renames existing variables. Specific error message is: " + e.message);
           console.log("jupyterlab_blockly_polyglot_extension: unable to decode blocks, last line is invald xml");
@@ -395,17 +443,17 @@ export function createMainAreaWidget(bw: BlocklyWidget): MainAreaWidget<BlocklyW
  */
 export function attachWidget(app: JupyterFrontEnd, notebooks: INotebookTracker, widget: MainAreaWidget): void {
   if (!widget.isAttached) {
-    if( notebooks.currentWidget != null ) {
+    if (notebooks.currentWidget != null) {
       const options: DocumentRegistry.IOpenOptions = {
         ref: notebooks.currentWidget.id,
         mode: "split-left",
       };
       notebooks.currentWidget.context.addSibling(widget, options);
-    //Forcing a left split when there is no notebook open results in partially broken behavior, so we must add to the main area
+      //Forcing a left split when there is no notebook open results in partially broken behavior, so we must add to the main area
     } else {
       app.shell.add(widget, "main");
     }
-  app.shell.activateById(widget.id);
+    app.shell.activateById(widget.id);
   }
 };
 
@@ -417,7 +465,7 @@ export function attachWidget(app: JupyterFrontEnd, notebooks: INotebookTracker, 
  * @returns 
  */
 export const runCommandOnNotebookChanged = function (this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean {
-  if( sender.currentWidget != null ) {
+  if (sender.currentWidget != null) {
     console.log("jupyterlab_blockly_polyglot_extension: notebook changed, autorunning blockly polyglot command");
     this.commands.execute("blockly_polyglot:open");
   }
@@ -435,18 +483,18 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
   const widget: BlocklyWidget = this;
   //NOTE: removing "notHooked" logic
   // if (widget.notHooked) {
-    if(sender.session?.kernel != null ) {
-      //listend for kernel messages
-      let connection_status = sender.session.kernel.iopubMessage.connect(widget.onKernelExecuted(), widget);
-      console.log(`jupyterlab_blockly_polyglot_extension: onKernelExecuted event is ${connection_status ? "now": "already"} connected for ${sender.session.kernel.name}`);
-      // console.log("jupyterlab_blockly_polyglot_extension: Listening for kernel messages");
-      //connect appropriate toolbox
-      widget.GetToolBox(sender.session.kernel.name);
-      // console.log("jupyterlab_blockly_polyglot_extension: Attaching toolbox for " + `${sender.session.kernel.name}`);
-      
-      // widget.notHooked = false;
-    }
-    return true;
+  if (sender.session?.kernel != null) {
+    //listend for kernel messages
+    let connection_status = sender.session.kernel.iopubMessage.connect(widget.onKernelExecuted(), widget);
+    console.log(`jupyterlab_blockly_polyglot_extension: onKernelExecuted event is ${connection_status ? "now" : "already"} connected for ${sender.session.kernel.name}`);
+    // console.log("jupyterlab_blockly_polyglot_extension: Listening for kernel messages");
+    //connect appropriate toolbox
+    widget.GetToolBox(sender.session.kernel.name);
+    // console.log("jupyterlab_blockly_polyglot_extension: Attaching toolbox for " + `${sender.session.kernel.name}`);
+
+    // widget.notHooked = false;
+  }
+  return true;
   // }
   // else {
   //   return false;
@@ -462,17 +510,17 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
  */
 export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean {
   const blocklyWidget: BlocklyWidget = this;
-  if( sender.currentWidget != null) {
-    console.log("jupyterlab_blockly_polyglot_extension: notebook changed to " +  sender.currentWidget.context.path);
+  if (sender.currentWidget != null) {
+    console.log("jupyterlab_blockly_polyglot_extension: notebook changed to " + sender.currentWidget.context.path);
     // LogToServer(JupyterLogEntry082720_Create("notebook-changed", notebook.context.path));
     let connection_status = sender.currentWidget.sessionContext.kernelChanged.connect(onKernelChanged, blocklyWidget);
-    console.log(`jupyterlab_blockly_polyglot_extension: kernelChanged event is ${connection_status ? "now": "already"} connected`);
+    console.log(`jupyterlab_blockly_polyglot_extension: kernelChanged event is ${connection_status ? "now" : "already"} connected`);
 
     //onKernelChanged will only fire the first time a kernel is loaded
     //so if a user switches back and forth between notebooks with different kernels that are
     //already loaded, we need to catch that here to update the toolbox
     // if the kernel is known, update the toolbox
-    if(sender.currentWidget.sessionContext?.session?.kernel?.name){
+    if (sender.currentWidget.sessionContext?.session?.kernel?.name) {
       blocklyWidget.GetToolBox(sender.currentWidget.sessionContext?.session?.kernel?.name);
     }
   }
@@ -489,7 +537,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   activate: (app: JupyterFrontEnd, palette: ICommandPalette, notebooks: INotebookTracker, restorer: ILayoutRestorer) => {
     console.log("jupyterlab_blockly_polyglot_extension: activated");
 
-     //Create a blockly widget and place inside main area widget
+    //Create a blockly widget and place inside main area widget
     const blocklyWidget: BlocklyWidget = new BlocklyWidget(notebooks);
     let widget: MainAreaWidget<BlocklyWidget> = createMainAreaWidget(blocklyWidget);
 
@@ -524,7 +572,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       },
     } as CommandRegistry.ICommandOptions);
 
-     //Add command to command palette
+    //Add command to command palette
     palette.addItem({ command: "blockly_polyglot:open", category: 'Blockly' });
 
     //----------------------
@@ -533,24 +581,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const searchParams: any = new URLSearchParams(window.location.search);
 
     //If query string has bl=1, trigger the open command once the application is ready
-    if( searchParams.get("bl") == "1"){
-        console.log("jupyterlab_blockly_polyglot_extension: triggering open command based on query string input");
-        //wait until a notebook is displayed so we dock correctly (e.g. nbgitpuller deployment)
-        //NOTE: workspaces are stateful, so the notebook must be closed, then openned in the workspace for this to fire
-        app.restored.then<void>((): void => {
-          notebooks.currentChanged.connect(runCommandOnNotebookChanged, app);
-          //If we force blockly to be open, do not allow blockly to be closed; useful for classes and experiments
-          widget.title.closable = false;
-        });
+    if (searchParams.get("bl") == "1") {
+      console.log("jupyterlab_blockly_polyglot_extension: triggering open command based on query string input");
+      //wait until a notebook is displayed so we dock correctly (e.g. nbgitpuller deployment)
+      //NOTE: workspaces are stateful, so the notebook must be closed, then openned in the workspace for this to fire
+      app.restored.then<void>((): void => {
+        notebooks.currentChanged.connect(runCommandOnNotebookChanged, app);
+        //If we force blockly to be open, do not allow blockly to be closed; useful for classes and experiments
+        widget.title.closable = false;
+      });
     }
-    
+
     //If query string has id=, set up logging with this id
-    if( searchParams.get("id") == "1"){
+    if (searchParams.get("id") == "1") {
       //TODO set up logging with this id
     }
 
     //If query string has log=, set up logging with this log endpoint url
-    if( searchParams.get("log") == "1"){
+    if (searchParams.get("log") == "1") {
       //TODO set up logging with this url
     }
 
