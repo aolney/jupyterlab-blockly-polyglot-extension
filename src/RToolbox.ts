@@ -16,14 +16,16 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
         "contents": [
             {
                 "kind": "CATEGORY",
-                "contents": [
-                    {
-                        "kind": "BLOCK",
-                        "type": "import"
-                    }
-                ],
+                // OLD: we now have a dynamic flyout similar to VARIABLE
+                // "contents": [
+                //     {
+                //         "kind": "BLOCK",
+                //         "type": "import"
+                //     }
+                // ],
                 "name": "IMPORT",
-                "colour": "255"
+                "colour": "255",
+                "custom": "IMPORT"
             },
             {
                 "kind": "CATEGORY",
@@ -574,7 +576,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
     makeImportBlock(blockName: string, labelOne: string): void {
         Blockly.Blocks[blockName] = {
             init: function () {
-                this.appendDummyInput().appendField(labelOne).appendField(new Blockly.FieldVariable("some library") as Blockly.Field, "libraryName");
+                this.appendDummyInput().appendField(labelOne).appendField(new Blockly.FieldVariable("<select>") as Blockly.Field, "VAR");
                 this.setNextStatement(true);
                 this.setPreviousStatement(true);
                 this.setColour(230);
@@ -870,14 +872,12 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
 
         //make intellisense blocks
         this.makeMemberIntellisenseBlock(this, "varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => !ie.isFunction, false, true);
-        // this.registerMemberIntellisenseCodeGenerator("varGetProperty", false, true);
 
         this.makeMemberIntellisenseBlock(this, "varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
-        // this.registerMemberIntellisenseCodeGenerator("varDoMethod", true, true);
 
         this.makeMemberIntellisenseBlock(this, "varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
-        // this.registerMemberIntellisenseCodeGenerator("varCreateObject", true, true);
 
+        // custom flyout for special blocks, i.e. primitive blocks that only exist if a library has been loaded
         if (this.workspace) {
             this.workspace.registerToolboxCategoryCallback("SPECIAL", (workspace: Blockly.Workspace): any[] => {
                 const blockList: any[] = [];
@@ -897,6 +897,36 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 return blockList;
             });
         }
+
+        //custom flyout for importing libraries
+        if (this.workspace) {
+            this.workspace.registerToolboxCategoryCallback("IMPORT", (workspace: Blockly.Workspace): any[] => {
+                // create button for naming libraries. 
+                // The is hopefully a less confusing UI then having them rename a default import variable
+                const blockList: any[] = [];
+                const button = document.createElement('button');
+                button.setAttribute('text', "Load library...");
+                button.setAttribute('callbackKey', 'CREATE_VARIABLE');
+                (workspace as Blockly.WorkspaceSvg).registerButtonCallback('CREATE_VARIABLE', function (button) {
+                Blockly.Variables.createVariableButtonHandler(button.getTargetWorkspace());
+                });
+                void (blockList.push(button));
+
+                //add import block
+                //blocks appear if an import label has been created; by default show the most recent label
+                const variableModelList: Blockly.VariableModel[] = workspace.getVariablesOfType("");
+                if (variableModelList.length > 0) {
+                    const lastVariableModel : Blockly.VariableModel = variableModelList[variableModelList.length - 1];
+                    // add import blocks
+                    const importAs: Element = Blockly.utils.xml.createElement("block");
+                    importAs.setAttribute("type", "import");
+                    importAs.setAttribute("gap", Blockly.Blocks.importAs ? "8" : "24");
+                    importAs.appendChild(Blockly.Variables.generateVariableFieldDom(lastVariableModel));
+                    blockList.push(importAs);
+                }
+                return blockList;
+            });
+        }
     }
 
     registerMemberIntellisenseCodeGenerator(blockName: string, hasArgs: boolean, hasDot: boolean) {
@@ -904,6 +934,4 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
             return this.generateMemberIntellisenseCode(block, Order.FUNCTION_CALL, generator, hasArgs, hasDot)
         });
     };
-
-
 }

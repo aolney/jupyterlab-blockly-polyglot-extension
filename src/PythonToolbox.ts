@@ -9,6 +9,8 @@ import * as en from 'blockly/msg/en';
 
 export class PythonToolbox extends AbstractToolbox implements IToolbox {
 
+    temp = "";
+
     generator = pythonGenerator;
 
     toolboxDefinition = {
@@ -16,18 +18,20 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         "contents": [
             {
                 "kind": "CATEGORY",
-                "contents": [
-                    {
-                        "kind": "BLOCK",
-                        "type": "importAs"
-                    },
-                    {
-                        "kind": "BLOCK",
-                        "type": "importFrom"
-                    }
-                ],
+                // OLD: we now have a dynamic flyout similar to VARIABLE
+                // "contents": [
+                //     {
+                //         "kind": "BLOCK",
+                //         "type": "importAs"
+                //     },
+                //     {
+                //         "kind": "BLOCK",
+                //         "type": "importFrom"
+                //     }
+                // ],
                 "name": "IMPORT",
-                "colour": "255"
+                "colour": "255",
+                "custom": "IMPORT"
             },
             {
                 "kind": "CATEGORY",
@@ -588,7 +592,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
     makeImportBlock(blockName: string, labelOne: string, labelTwo: string): void {
         Blockly.Blocks[blockName] = {
             init: function () {
-                this.appendDummyInput().appendField(labelOne).appendField(new Blockly.FieldTextInput("some library") as Blockly.Field, "libraryName").appendField(labelTwo).appendField(new Blockly.FieldVariable("variable name") as Blockly.Field, "libraryAlias");
+                this.appendDummyInput().appendField(labelOne).appendField(new Blockly.FieldTextInput("some library") as Blockly.Field, "libraryName").appendField(labelTwo).appendField(new Blockly.FieldVariable("<select>") as Blockly.Field, "VAR");
                 this.setNextStatement(true);
                 this.setPreviousStatement(true);
                 this.setColour(230);
@@ -598,7 +602,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         };
         pythonGenerator.forBlock[blockName] = ((block: Blockly.Block, generator): string => {
             let libraryName = block.getFieldValue("libraryName");
-            let libraryAlias = generator.getVariableName(block.getFieldValue("libraryAlias"));
+            let libraryAlias = generator.getVariableName(block.getFieldValue("VAR"));
             let code = labelOne + " " + libraryName + " " + labelTwo + " " + libraryAlias + "\n";
             return code;
         });
@@ -990,14 +994,60 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
 
         //make intellisense blocks
         this.makeMemberIntellisenseBlock(this, "varGetProperty", "from", "get", (ie: IntellisenseEntry): boolean => ie.isProperty, false, true);
-        // this.registerMemberIntellisenseCodeGenerator("varGetProperty", false, true);
 
         this.makeMemberIntellisenseBlock(this, "varDoMethod", "with", "do", (ie: IntellisenseEntry): boolean => ie.isFunction, true, true);
-        // this.registerMemberIntellisenseCodeGenerator("varDoMethod", true, true);
 
         this.makeMemberIntellisenseBlock(this, "varCreateObject", "with", "create", (ie: IntellisenseEntry): boolean => ie.isClass, true, true);
-        // this.registerMemberIntellisenseCodeGenerator("varCreateObject", true, true);
 
+        //custom flyout for importing libraries
+        if (this.workspace) {
+            this.workspace.registerToolboxCategoryCallback("IMPORT", (workspace: Blockly.Workspace): any[] => {
+                // create button for naming libraries; hopefully a less confusing UI then having them rename a default import variable
+                const blockList: any[] = [];
+                const button = document.createElement('button');
+                button.setAttribute('text', "Import...");
+                button.setAttribute('callbackKey', 'CREATE_VARIABLE');
+                
+                //chain two modal windows: one for library name and one for alias/element name
+                (workspace as Blockly.WorkspaceSvg).registerButtonCallback('CREATE_VARIABLE', (button: any): void => { //function (button) {
+                    //get library name first
+                    let promptResult = prompt("Library name");
+                    this.temp = promptResult != null ? promptResult : "";
+                    //then get variable name
+                    Blockly.Variables.createVariableButtonHandler(button.getTargetWorkspace());
+                });
+                void (blockList.push(button));
+                //blocks appear if an import label has been created; by default show the most recent label
+                const variableModelList: Blockly.VariableModel[] = workspace.getVariablesOfType("");
+                if (variableModelList.length > 0) {
+                    const lastVariableModel : Blockly.VariableModel = variableModelList[variableModelList.length - 1];
+                    // add import blocks
+                    const importAs: Element = Blockly.utils.xml.createElement("block");
+                    importAs.setAttribute("type", "importAs");
+                    importAs.setAttribute("gap", Blockly.Blocks.importAs ? "8" : "24");
+                    // append field label first
+                    let asField = Blockly.utils.xml.createElement('field');
+                    asField.setAttribute('name','libraryName');
+                    let asName = Blockly.utils.xml.createTextNode(this.temp);
+                    asField.appendChild(asName);
+                    importAs.appendChild(asField);
+                    importAs.appendChild(Blockly.Variables.generateVariableFieldDom(lastVariableModel));
+                    blockList.push(importAs);
+
+                    const importFrom: Element = Blockly.utils.xml.createElement("block");
+                    importFrom.setAttribute("type", "importFrom");
+                    importFrom.setAttribute("gap", Blockly.Blocks.importFrom ? "8" : "24");
+                    let fromField = Blockly.utils.xml.createElement('field');
+                    fromField.setAttribute('name','libraryName');
+                    let fromName = Blockly.utils.xml.createTextNode(this.temp);
+                    fromField.appendChild(fromName);
+                    importFrom.appendChild(fromField);
+                    importFrom.appendChild(Blockly.Variables.generateVariableFieldDom(lastVariableModel));
+                    blockList.push(importFrom);
+                }
+                return blockList;
+            });
+        }
     }
 
     registerMemberIntellisenseCodeGenerator(blockName: string, hasArgs: boolean, hasDot: boolean) {

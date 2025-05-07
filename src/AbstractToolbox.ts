@@ -5,6 +5,7 @@ import { IRenderMime, MimeModel } from "@jupyterlab/rendermime";
 import { CustomFields } from "./SearchDropdown";
 import { createMinusField } from "./field_minus.js";
 import { createPlusField } from "./field_plus.js";
+import { dropdownCreateOverride } from './BlocklyOverrides';
 
 // CustomFieldFilter
 /**
@@ -129,13 +130,14 @@ export abstract class AbstractToolbox {
     //Register the intelliblock mutator
     this.createDynamicArgumentMutator("intelliblockMutator", 1, "add argument", "using", "and");
 
-    //TODO confirm this should not be deferred until the kernel is attached
+    //Initialize the non-intelliblock portion of the generator
     this.InitializeGenerator();
 
     //register custom flyout for intelliblocks (VARIABLES category)
-    //TODO likewise confirm this should not be deferred until the kernel is attached
     Blockly.Variables.flyoutCategoryBlocks = this.flyoutCategoryBlocks;
 
+    //Blockly overrides
+    Blockly.FieldVariable.dropdownCreate = dropdownCreateOverride; //remove rename variable option; it confuses users
   }
 
   /**
@@ -221,7 +223,7 @@ export abstract class AbstractToolbox {
 
 
   /**
-   * Update the intellisense options on all intelliblocks.
+   * Update the intellisense options on all intelliblocks; typically called after a kernel execution
    */
   UpdateAllIntellisense(): void {
     const workspace: Blockly.Workspace = Blockly.getMainWorkspace();
