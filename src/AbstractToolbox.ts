@@ -221,7 +221,7 @@ export abstract class AbstractToolbox {
 
 
   /**
-   * Updated the intellisense options on all intelliblocks.
+   * Update the intellisense options on all intelliblocks.
    */
   UpdateAllIntellisense(): void {
     const workspace: Blockly.Workspace = Blockly.getMainWorkspace();
@@ -870,9 +870,12 @@ export abstract class AbstractToolbox {
           block.data = varUserName + ":" + block.selectedMember;
         }
 
-        //set up the initial member tooltip
+        //restore previous member selection if possible and set up the initial member tooltip
         const memberField: Blockly.Field | null = block.getField("MEMBER");
         if (memberField) {
+          //restore previous member selection if possible
+          memberField.setValue(defaultSelection);
+          //set up the initial member tooltip
           memberField.setTooltip(toolbox.getIntellisenseMemberTooltip(varUserName, memberField.getText()));
         }
       },
@@ -1099,10 +1102,7 @@ export abstract class AbstractToolbox {
    * Using the current toolbox definition, update the toolbox. Uses this.toolboxDefinition by default
    * @param toolboxDefinition 
    */
-  UpdateToolbox(toolboxDefinition: Blockly.utils.toolbox.ToolboxDefinition = this.toolboxDefinition) {
-
+  UpdateToolbox(toolboxDefinition: Blockly.utils.toolbox.ToolboxDefinition = this.toolboxDefinition) : void {
     this.workspace?.updateToolbox(toolboxDefinition);
-
-    console.log("updated toolbox")
   }
 }

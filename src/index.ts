@@ -12,6 +12,7 @@ import { CommandRegistry } from "@lumino/commands";
 import { IToolbox } from "./AbstractToolbox";
 import { PythonToolbox } from "./PythonToolbox";
 import { RToolbox } from "./RToolbox";
+import { BlockChange } from 'blockly/core/events/events_block_change';
 
 // TODO: seems like logging is not wired up throughout
 
@@ -47,7 +48,15 @@ export class BlocklyWidget extends Widget {
    * blocks rendered flag for state managment. Set to false every time a block is created. Set to true when blocks have been deserialized OR have been serialized
    */
   blocksInSyncWithXML: boolean;
-    /**
+  /**
+   * State for user setting of auto code execution, i.e. automatically executing code when blocks change
+   */
+  doAutoCodeExecution : boolean;
+  /**
+   * Track whether we are currently deserializing blocks as this affects how we handle some events
+   */
+  deserializingFlag : boolean;
+  /**
    * Only do auto code gen for these block events
    */
   codeGenBlockEvents : Set<string>
@@ -68,6 +77,8 @@ export class BlocklyWidget extends Widget {
     //set initial state
     this.lastCell = null;
     this.blocksInSyncWithXML = false;
+    this.doAutoCodeExecution = true;
+    this.deserializingFlag = false;
     this.workspace = null;
     this.toolbox = null;
     this.notHooked = true;
@@ -78,13 +89,14 @@ export class BlocklyWidget extends Widget {
       Blockly.Events.BLOCK_CREATE,
       Blockly.Events.BLOCK_DELETE,
       Blockly.Events.BLOCK_MOVE,
+      Blockly.Events.FINISHED_LOADING,
     ]);
 
     //---------------------
     // Widget UI in Jupyter
     //---------------------
     //div to hold blockly
-    const div: any = document.createElement("div");
+    const div: HTMLDivElement = document.createElement("div");
 
     //initial size will be immediately resized
     div.setAttribute("style", "height: 480px; width: 600px;");
@@ -94,11 +106,11 @@ export class BlocklyWidget extends Widget {
     this.node.appendChild(div);
 
     //div for buttons    
-    const buttonDiv: any = document.createElement("div");
+    const buttonDiv: HTMLDivElement = document.createElement("div");
     buttonDiv.id = "buttonDivPoly";
 
     //button to trigger code generation
-    const blocksToCodeButton: any = document.createElement("button");
+    const blocksToCodeButton: HTMLButtonElement = document.createElement("button");
     blocksToCodeButton.innerText = "Blocks to Code";
     blocksToCodeButton.addEventListener("click", (_arg: any): void => {
       this.BlocksToCode(this.notebooks.activeCell, true);
@@ -106,7 +118,7 @@ export class BlocklyWidget extends Widget {
     buttonDiv.appendChild(blocksToCodeButton);
 
     //button to reverse xml to blocks
-    const codeToBlocksButton: any = document.createElement("button");
+    const codeToBlocksButton: HTMLButtonElement = document.createElement("button");
     codeToBlocksButton.innerText = "Code to Blocks";
     codeToBlocksButton.addEventListener("click", (_arg_1: any): void => {
       this.DeserializeBlocksFromXML();
@@ -114,7 +126,7 @@ export class BlocklyWidget extends Widget {
     buttonDiv.appendChild(codeToBlocksButton);
 
     //button for bug reports
-    const bugReportButton: any = document.createElement("button");
+    const bugReportButton: HTMLButtonElement = document.createElement("button");
     bugReportButton.innerText = "Report Bug";
     bugReportButton.addEventListener("click", (_arg_2: any): void => {
       const win: any = window.open("https://jupyterlab-blockly-polyglot-extension/issues", "_blank");
@@ -123,39 +135,42 @@ export class BlocklyWidget extends Widget {
     buttonDiv.appendChild(bugReportButton);
 
     //checkbox for JLab sync (if cell is selected and has serialized blocks, decode them to workspace; if cell is empty, empty workspace)
-    const syncCheckbox: any = document.createElement("input");
+    const syncCheckbox: HTMLInputElement = document.createElement("input");
     syncCheckbox.setAttribute("type", "checkbox");
     syncCheckbox.checked = true;
     syncCheckbox.id = "syncCheckboxPoly";
-    const syncCheckboxLabel: any = document.createElement("label");
+    const syncCheckboxLabel: HTMLLabelElement = document.createElement("label");
     syncCheckboxLabel.innerText = "Notebook Sync";
     syncCheckboxLabel.setAttribute("for", "syncCheckboxPoly");
     buttonDiv.appendChild(syncCheckbox);
     buttonDiv.appendChild(syncCheckboxLabel);
 
     //checkbox for automatically generating code when blocks changed (auto blocks to code)
-    const autoCodeGenCheckbox: any = document.createElement("input");
-    autoCodeGenCheckbox.setAttribute("type", "checkbox");
-    autoCodeGenCheckbox.checked = true;
-    autoCodeGenCheckbox.id = "autoCodeGenCheckboxPoly";
-    const autoCodeGenCheckboxLabel: any = document.createElement("label");
-    autoCodeGenCheckboxLabel.innerText = "Auto Blocks to Code";
-    autoCodeGenCheckboxLabel.setAttribute("for", "autoCodeGenCheckboxPoly");
-    buttonDiv.appendChild(autoCodeGenCheckbox);
-    buttonDiv.appendChild(autoCodeGenCheckboxLabel);
-
-    //TODO STOPPED HERE add checkbox listener; track state in class; check state in auto code gen handler
-    // checkbox.addEventListener('change', function(event) {
-    //   if (event.target.checked) {
-    //     // Checkbox is checked
-    //     console.log('Checkbox is checked');
-    //   } else {
-    //     // Checkbox is unchecked
-    //     console.log('Checkbox is unchecked');
-    //   }
-    // });
+    const autoCodeExecutionCheckbox: HTMLInputElement = document.createElement("input");
+    autoCodeExecutionCheckbox.setAttribute("type", "checkbox");
+    autoCodeExecutionCheckbox.checked = true;
+    autoCodeExecutionCheckbox.id = "autoCodeGenCheckboxPoly";
+    const autoCodeExecutionCheckboxLabel: HTMLLabelElement = document.createElement("label");
+    autoCodeExecutionCheckboxLabel.innerText = "Auto Execution";
+    autoCodeExecutionCheckboxLabel.setAttribute("for", "autoCodeGenCheckboxPoly");
+    const autoCodeExecutionCheckboxListener = (event: Event): void => {
+      const target = event.target as HTMLInputElement;
+      if( target != null) this.doAutoCodeExecution = target.checked;
+      this.LogToConsole("auto code execution state is now " + this.doAutoCodeExecution );
+    }
+    autoCodeExecutionCheckbox.addEventListener('change',autoCodeExecutionCheckboxListener);
+    buttonDiv.appendChild(autoCodeExecutionCheckbox);
+    buttonDiv.appendChild(autoCodeExecutionCheckboxLabel);
 
     this.node.appendChild(buttonDiv);
+  }
+
+  /**
+   * Convenience wrapper for logging to console with name of extension
+   * @param message 
+   */
+  LogToConsole(message : string) : void {
+    console.log("jupyterlab_blockly_polyglot_extension: " + message );
   }
 
   /**
@@ -187,7 +202,7 @@ export class BlocklyWidget extends Widget {
       }
     }
 
-    console.log("jupyterlab_blockly_polyglot_extension: Attaching toolbox for " + `${kernelName}`);
+    this.LogToConsole("Attaching toolbox for " + `${kernelName}`);
   }
 
   /**
@@ -227,12 +242,13 @@ export class BlocklyWidget extends Widget {
       const messageType: string = args.header.msg_type.toString();
       switch (messageType) {
         case "execute_input": {
-          console.log(`jupyterlab_blockly_polyglot_extension: kernel '${sender.name}' executed code, updating intellisense`);
+          this.LogToConsole(`kernel '${sender.name}' executed code, updating intellisense`);
           // LogToServer(JupyterLogEntry082720_Create("execute-code", args.content.code));
           this.toolbox?.UpdateAllIntellisense();
           break;
         }
         case "error": {
+          this.LogToConsole("kernel reports error executing code")
           // LogToServer(JupyterLogEntry082720_Create("execute-code-error", JSON.stringify(args.content)));
           break;
         }
@@ -257,7 +273,7 @@ export class BlocklyWidget extends Widget {
         // if autosave enabled, attempt to save our current blocks to the previous cell we just navigated off (to prevent losing work)
         if (autosaveCheckbox?.checked && this.lastCell) {
           // this.RenderCodeToLastCell(); //refactoring to BlocksToCode
-          this.BlocksToCode(this.lastCell)
+          this.BlocksToCode(this.lastCell,false)
           // set lastCell to current cell
           this.lastCell = args;
         }
@@ -309,14 +325,24 @@ export class BlocklyWidget extends Widget {
     //2025-05-06 continuous code generation and execution, NOTE: experimental
     const codeGenListener = (e: Blockly.Events.Abstract): void => {
       if (this.workspace?.isDragging()) return; // Don't update while changes are happening.
-      if (!this.codeGenBlockEvents.has(e.type)) return;
+      if (!this.codeGenBlockEvents.has(e.type)) return; //Don't update for all events, only specific events 
+      if (e.type === Blockly.Events.FINISHED_LOADING ) this.deserializingFlag = false; //Update deserialization flag
+      if (this.deserializingFlag) return; //Don't update while we are deserializing
+      
       // write code to active cell
-      this.BlocksToCode(this.notebooks.activeCell);
+      this.BlocksToCode(this.notebooks.activeCell, false);
 
       // experimental: execute code as well - only if this is not an intelliblock to avoid infinite loop
-      if(e.group != "INTELLISENSE" && e.type == "change" && (<Blockly.Events.BlockChange>e).name != "MEMBER"){
-        let code_to_execute = this.toolbox?.BlocksToCode() ?? "";
-        this.notebooks.currentWidget?.sessionContext.session?.kernel?.requestExecute({code: code_to_execute});// currentWidget.sessionContext
+      if( this.doAutoCodeExecution && e.group != "INTELLISENSE" ) {
+        // && e.group != "INTELLISENSE" && e.type == "change" && (<Blockly.Events.BlockChange>e).name != "MEMBER"){
+        let changeEvent = e as BlockChange;
+        if( changeEvent.oldValue != "" ) {
+          let code_to_execute = this.toolbox?.BlocksToCode() ?? "";
+          if( code_to_execute != "" ) {
+            this.notebooks.currentWidget?.sessionContext.session?.kernel?.requestExecute({code: code_to_execute});
+            this.LogToConsole("auto executing the following code:\n" + code_to_execute + "\n");
+          }
+        }
       }
     }
     this.workspace.addChangeListener(codeGenListener);
@@ -387,13 +413,13 @@ export class BlocklyWidget extends Widget {
       } else if (cells.isCodeCellModel(cell.model)) {
         let cell_contents = code + "\n#" + this.toolbox?.EncodeWorkspace();
         this.notebooks.activeCell?.model.sharedModel.setSource(cell_contents);
-        console.log(("jupyterlab_blockly_polyglot_extension: wrote to cell\n" + code) + "\n");
+        this.LogToConsole(`${userInitated ? 'user' : 'auto'} wrote to cell\n` + code + "\n");
         // LogToServer(JupyterLogEntry082720_Create("blocks-to-code", this$.notebooks.activeCell.model.value.text));
         this.blocksInSyncWithXML = true;
       }
     }
     else {
-      console.log(("jupyterlab_blockly_polyglot_extension: cell is null, could not execute blocks to code for\n" + code) + "\n");
+      this.LogToConsole("cell is null, could not execute blocks to code for\n" + code + "\n");
     }
   };
 
@@ -408,16 +434,20 @@ export class BlocklyWidget extends Widget {
           //clear existing blocks so we don't junk up the workspace
           this.clearBlocks();
 
+          //prevent auto code execution until we are done deserializing
+          this.deserializingFlag = true;
+
           this.toolbox?.DecodeWorkspace(xmlString)
 
           // LogToServer(JupyterLogEntry082720_Create("xml-to-blocks", xmlString));
         } catch (e: any) {
+          this.deserializingFlag = false;
           window.alert("Unable to perform \'Code to Blocks\': XML is either invald or renames existing variables. Specific error message is: " + e.message);
-          console.log("jupyterlab_blockly_polyglot_extension: unable to decode blocks, last line is invald xml");
+          this.LogToConsole("unable to decode blocks, last line is invald xml");
         }
       }
       else {
-        console.log("jupyterlab_blockly_polyglot_extension: unable to decode blocks, active cell is null");
+        this.LogToConsole("unable to decode blocks, active cell is null");
       }
     }
   };
@@ -466,7 +496,7 @@ export function attachWidget(app: JupyterFrontEnd, notebooks: INotebookTracker, 
  */
 export const runCommandOnNotebookChanged = function (this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean {
   if (sender.currentWidget != null) {
-    console.log("jupyterlab_blockly_polyglot_extension: notebook changed, autorunning blockly polyglot command");
+    this.LogToConsole("notebook changed, autorunning blockly polyglot command");
     this.commands.execute("blockly_polyglot:open");
   }
   return true;
@@ -486,7 +516,7 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
   if (sender.session?.kernel != null) {
     //listend for kernel messages
     let connection_status = sender.session.kernel.iopubMessage.connect(widget.onKernelExecuted(), widget);
-    console.log(`jupyterlab_blockly_polyglot_extension: onKernelExecuted event is ${connection_status ? "now" : "already"} connected for ${sender.session.kernel.name}`);
+    this.LogToConsole(`onKernelExecuted event is ${connection_status ? "now" : "already"} connected for ${sender.session.kernel.name}`);
     // console.log("jupyterlab_blockly_polyglot_extension: Listening for kernel messages");
     //connect appropriate toolbox
     widget.GetToolBox(sender.session.kernel.name);
@@ -511,10 +541,10 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
 export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean {
   const blocklyWidget: BlocklyWidget = this;
   if (sender.currentWidget != null) {
-    console.log("jupyterlab_blockly_polyglot_extension: notebook changed to " + sender.currentWidget.context.path);
+    this.LogToConsole("notebook changed to " + sender.currentWidget.context.path);
     // LogToServer(JupyterLogEntry082720_Create("notebook-changed", notebook.context.path));
     let connection_status = sender.currentWidget.sessionContext.kernelChanged.connect(onKernelChanged, blocklyWidget);
-    console.log(`jupyterlab_blockly_polyglot_extension: kernelChanged event is ${connection_status ? "now" : "already"} connected`);
+    this.LogToConsole(`kernelChanged event is ${connection_status ? "now" : "already"} connected`);
 
     //onKernelChanged will only fire the first time a kernel is loaded
     //so if a user switches back and forth between notebooks with different kernels that are
@@ -582,7 +612,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     //If query string has bl=1, trigger the open command once the application is ready
     if (searchParams.get("bl") == "1") {
-      console.log("jupyterlab_blockly_polyglot_extension: triggering open command based on query string input");
+      blocklyWidget.LogToConsole("triggering open command based on query string input");
       //wait until a notebook is displayed so we dock correctly (e.g. nbgitpuller deployment)
       //NOTE: workspaces are stateful, so the notebook must be closed, then openned in the workspace for this to fire
       app.restored.then<void>((): void => {
