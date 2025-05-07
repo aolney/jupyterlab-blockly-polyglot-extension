@@ -89,6 +89,7 @@ export class BlocklyWidget extends Widget {
       Blockly.Events.BLOCK_CREATE,
       Blockly.Events.BLOCK_DELETE,
       Blockly.Events.BLOCK_MOVE,
+      Blockly.Events.VAR_RENAME,
       Blockly.Events.FINISHED_LOADING,
     ]);
 
