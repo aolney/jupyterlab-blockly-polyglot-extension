@@ -13,6 +13,10 @@ import { IToolbox } from "./AbstractToolbox";
 import { PythonToolbox } from "./PythonToolbox";
 import { RToolbox } from "./RToolbox";
 import { BlockChange } from 'blockly/core/events/events_block_change';
+// We have to load this extension well after blockly to avoid "Extension "text_join_mutator" is already registered"
+// I believe this is because core blockly has text_join_mutator, which this overwrites. If this registers it first,
+// then core blockly throws an unrecoverable error when it tries to register text_join_mutator
+import '@blockly/block-plus-minus';
 
 // TODO: seems like logging is not wired up throughout
 
