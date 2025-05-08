@@ -402,6 +402,12 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 "name": "SPECIAL",
                 "colour": "270",
                 "custom": "SPECIAL"
+            },
+            // search box: https://google.github.io/blockly-samples/plugins/toolbox-search/README
+            {
+                'kind': 'search',
+                'name': 'Search',
+                'contents': [],
             }
         ],
     };

@@ -8,7 +8,9 @@ import * as libraryBlocks from 'blockly/blocks';
 import * as en from 'blockly/msg/en';
 
 export class PythonToolbox extends AbstractToolbox implements IToolbox {
-
+    /**
+     * Terrible hack for importing libraries
+     */
     temp = "";
 
     generator = pythonGenerator;
@@ -350,29 +352,30 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "name": "LISTS",
                 "colour": "260"
             },
-            {
-                "kind": "CATEGORY",
-                "contents": [
-                    {
-                        "kind": "BLOCK",
-                        "type": "colour_picker"
-                    },
-                    {
-                        "kind": "BLOCK",
-                        "type": "colour_random"
-                    },
-                    {
-                        "kind": "BLOCK",
-                        "type": "colour_rgb"
-                    },
-                    {
-                        "kind": "BLOCK",
-                        "type": "colour_blend"
-                    }
-                ],
-                "name": "COLOUR",
-                "colour": "20"
-            },
+            // TODO: there is a problem with this blocks; toolbox search extension fails to initialize if they are present
+            // {
+            //     "kind": "CATEGORY",
+            //     "contents": [
+            //         {
+            //             "kind": "BLOCK",
+            //             "type": "colour_picker"
+            //         },
+            //         {
+            //             "kind": "BLOCK",
+            //             "type": "colour_random"
+            //         },
+            //         {
+            //             "kind": "BLOCK",
+            //             "type": "colour_rgb"
+            //         },
+            //         {
+            //             "kind": "BLOCK",
+            //             "type": "colour_blend"
+            //         }
+            //     ],
+            //     "name": "COLOUR",
+            //     "colour": "20"
+            // },
             {
                 "kind": "CATEGORY",
                 "contents": [
@@ -433,6 +436,12 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "name": "FUNCTIONS",
                 "colour": "290",
                 "custom": "PROCEDURE"
+            },
+            // search box: https://google.github.io/blockly-samples/plugins/toolbox-search/README
+            {
+                'kind': 'search',
+                'name': 'Search',
+                'contents': [],
             }
         ],
     };

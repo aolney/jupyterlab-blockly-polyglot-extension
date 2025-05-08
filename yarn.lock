@@ -1305,6 +1305,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@blockly/toolbox-search@npm:^2.0.12":
+  version: 2.0.12
+  resolution: "@blockly/toolbox-search@npm:2.0.12"
+  peerDependencies:
+    blockly: ^11.0.0
+  checksum: e00bc96c75e744f2d25a8f61f7fd7ab1c8383c154de72121ba5ee468c006d867661a34fb7e5e816e1e65429c57a6e7e5eb36bc645c94cf6edd5f1687b2b65abc
+  languageName: node
+  linkType: hard
+
 "@codemirror/autocomplete@npm:^6.0.0, @codemirror/autocomplete@npm:^6.16.0, @codemirror/autocomplete@npm:^6.3.2, @codemirror/autocomplete@npm:^6.7.1":
   version: 6.18.6
   resolution: "@codemirror/autocomplete@npm:6.18.6"
@@ -6940,6 +6949,7 @@ __metadata:
   resolution: "jupyterlab-blockly-polyglot-extension@workspace:."
   dependencies:
     "@blockly/block-plus-minus": ^8.0.12
+    "@blockly/toolbox-search": ^2.0.12
     "@jupyterlab/application": ^4.3.6
     "@jupyterlab/apputils": ^4.4.6
     "@jupyterlab/builder": ^4.0.0

@@ -17,6 +17,7 @@ import { BlockChange } from 'blockly/core/events/events_block_change';
 // I believe this is because core blockly has text_join_mutator, which this overwrites. If this registers it first,
 // then core blockly throws an unrecoverable error when it tries to register text_join_mutator
 import '@blockly/block-plus-minus';
+import '@blockly/toolbox-search';
 
 // TODO: seems like logging is not wired up throughout
 
