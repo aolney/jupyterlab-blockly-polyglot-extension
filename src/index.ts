@@ -18,6 +18,11 @@ import { BlockChange } from 'blockly/core/events/events_block_change';
 // then core blockly throws an unrecoverable error when it tries to register text_join_mutator
 import '@blockly/block-plus-minus';
 import '@blockly/toolbox-search';
+import {
+  ScrollOptions,
+  ScrollBlockDragger,
+  ScrollMetricsManager,
+} from '@blockly/plugin-scroll-options';
 
 // TODO: seems like logging is not wired up throughout
 
@@ -326,7 +331,25 @@ export class BlocklyWidget extends Widget {
         { "kind": "CATEGORY", "contents": [], "colour": 270, "name": "BLOCKLY" },
       ]
     };
-    this.workspace = Blockly.inject("blocklyDivPoly", { toolbox: starterToolbox });
+    this.workspace = Blockly.inject(
+      "blocklyDivPoly", 
+      { 
+        toolbox: starterToolbox,
+        plugins: {
+          // These are both required.
+          // Note that the ScrollBlockDragger drags things besides blocks.
+          // Block is included in the name for backwards compatibility.
+          blockDragger: ScrollBlockDragger,
+          metricsManager: ScrollMetricsManager,
+        },
+        move: {
+          wheel: true, // Required for wheel scroll to work.
+        }, 
+      });
+    
+    // Initialize plugin.
+    const plugin = new ScrollOptions(this.workspace);
+    plugin.init();
 
     //2025-05-06 continuous code generation and execution, NOTE: experimental
     const codeGenListener = (e: Blockly.Events.Abstract): void => {

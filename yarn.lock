@@ -1305,6 +1305,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@blockly/plugin-scroll-options@npm:^6.0.12":
+  version: 6.0.12
+  resolution: "@blockly/plugin-scroll-options@npm:6.0.12"
+  peerDependencies:
+    blockly: ^11.0.0
+  checksum: 00f684bd3f2f6e6f15542c23e691358985fc7f3c90aca5076a51d080359dd9150a436c483af8f2c10878247b16b24becae263da59e961aecd00160b279b4d998
+  languageName: node
+  linkType: hard
+
 "@blockly/toolbox-search@npm:^2.0.12":
   version: 2.0.12
   resolution: "@blockly/toolbox-search@npm:2.0.12"
@@ -6949,6 +6958,7 @@ __metadata:
   resolution: "jupyterlab-blockly-polyglot-extension@workspace:."
   dependencies:
     "@blockly/block-plus-minus": ^8.0.12
+    "@blockly/plugin-scroll-options": ^6.0.12
     "@blockly/toolbox-search": ^2.0.12
     "@jupyterlab/application": ^4.3.6
     "@jupyterlab/apputils": ^4.4.6
