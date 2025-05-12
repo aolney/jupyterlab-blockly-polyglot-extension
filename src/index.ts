@@ -440,11 +440,27 @@ export class BlocklyWidget extends Widget {
         window.alert("You are calling \'Blocks to Code\' on a MARKDOWN cell. Select an empty CODE cell and try again.");
         // if this is a code cell, do blocks to code
       } else if (cells.isCodeCellModel(cell.model)) {
-        let cell_contents = code + "\n#" + this.toolbox?.EncodeWorkspace();
+        let blocks_xml = this.toolbox?.EncodeWorkspace();
+        let cell_contents = code + "\n#" + blocks_xml;
         this.notebooks.activeCell?.model.sharedModel.setSource(cell_contents);
         this.LogToConsole(`${userInitated ? 'user' : 'auto'} wrote to cell\n` + code + "\n");
         // LogToServer(JupyterLogEntry082720_Create("blocks-to-code", this$.notebooks.activeCell.model.value.text));
         this.blocksInSyncWithXML = true;
+
+        //TODO STOPPED HERE - next do something with metadata
+        // serialize to metadata
+        // put code in metadata
+        // put list of blocks in metadata
+        //save to metadata
+        // cell.model.getMetadata()
+        cell.model.setMetadata("user_code",code);
+        cell.model.setMetadata("user_blocks_xml", blocks_xml);
+        // we extract block type from XML b/c JSON seems to ignore intelliblocks
+        if(blocks_xml) {
+          // note this approach does not extract intelliblock parameters, just the unparameterized block
+          let blocks = Array.from(blocks_xml.matchAll(/block type="([^"]+)"/gm), m => m[1]);
+          cell.model.setMetadata("user_blocks", blocks);
+        }      
       }
     }
     else {
