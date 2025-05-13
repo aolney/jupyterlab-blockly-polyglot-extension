@@ -1,7 +1,9 @@
 import { ILayoutRestorer, JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { Widget } from '@lumino/widgets';
 import { INotebookTracker, NotebookPanel } from "@jupyterlab/notebook";
 import { Cell } from "@jupyterlab/cells";
+// import { markdownIcon, runIcon } from '@jupyterlab/ui-components';
 import * as Blockly from 'blockly/core';
 import { ICommandPalette, MainAreaWidget, IWidgetTracker, ISessionContext, WidgetTracker } from '@jupyterlab/apputils';
 import * as cells from "@jupyterlab/cells";
@@ -12,6 +14,8 @@ import { CommandRegistry } from "@lumino/commands";
 import { IToolbox } from "./AbstractToolbox";
 import { PythonToolbox } from "./PythonToolbox";
 import { RToolbox } from "./RToolbox";
+// import { llm_explain_code, llm_explain_error, llm_next_step_hint } from './LLMClient';
+import { explainCodeIcon, explainErrorIcon as explainErrorIcon, nextStepHintIcon } from './LLMClient';
 import { BlockChange } from 'blockly/core/events/events_block_change';
 // We have to load this extension well after blockly to avoid "Extension "text_join_mutator" is already registered"
 // I believe this is because core blockly has text_join_mutator, which this overwrites. If this registers it first,
@@ -61,15 +65,19 @@ export class BlocklyWidget extends Widget {
   /**
    * State for user setting of auto code execution, i.e. automatically executing code when blocks change
    */
-  doAutoCodeExecution : boolean;
+  doAutoCodeExecution: boolean;
   /**
    * Track whether we are currently deserializing blocks as this affects how we handle some events
    */
-  deserializingFlag : boolean;
+  deserializingFlag: boolean;
   /**
    * Only do auto code gen for these block events
    */
-  codeGenBlockEvents : Set<string>
+  codeGenBlockEvents: Set<string>;
+  /**
+   * API key for commercial LLM, stored in user settings
+   */
+  llm_api_key: string;
 
 
   constructor(notebooks: INotebookTracker) {
@@ -92,6 +100,7 @@ export class BlocklyWidget extends Widget {
     this.workspace = null;
     this.toolbox = null;
     this.notHooked = true;
+    this.llm_api_key = "";
 
     //define block events that trigger code gen
     this.codeGenBlockEvents = new Set([
@@ -166,10 +175,10 @@ export class BlocklyWidget extends Widget {
     autoCodeExecutionCheckboxLabel.setAttribute("for", "autoCodeGenCheckboxPoly");
     const autoCodeExecutionCheckboxListener = (event: Event): void => {
       const target = event.target as HTMLInputElement;
-      if( target != null) this.doAutoCodeExecution = target.checked;
-      this.LogToConsole("auto code execution state is now " + this.doAutoCodeExecution );
+      if (target != null) this.doAutoCodeExecution = target.checked;
+      this.LogToConsole("auto code execution state is now " + this.doAutoCodeExecution);
     }
-    autoCodeExecutionCheckbox.addEventListener('change',autoCodeExecutionCheckboxListener);
+    autoCodeExecutionCheckbox.addEventListener('change', autoCodeExecutionCheckboxListener);
     buttonDiv.appendChild(autoCodeExecutionCheckbox);
     buttonDiv.appendChild(autoCodeExecutionCheckboxLabel);
 
@@ -180,8 +189,8 @@ export class BlocklyWidget extends Widget {
    * Convenience wrapper for logging to console with name of extension
    * @param message 
    */
-  LogToConsole(message : string) : void {
-    console.log("jupyterlab_blockly_polyglot_extension: " + message );
+  LogToConsole(message: string): void {
+    console.log("jupyterlab_blockly_polyglot_extension: " + message);
   }
 
   /**
@@ -284,7 +293,7 @@ export class BlocklyWidget extends Widget {
         // if autosave enabled, attempt to save our current blocks to the previous cell we just navigated off (to prevent losing work)
         if (autosaveCheckbox?.checked && this.lastCell) {
           // this.RenderCodeToLastCell(); //refactoring to BlocksToCode
-          this.BlocksToCode(this.lastCell,false)
+          this.BlocksToCode(this.lastCell, false)
           // set lastCell to current cell
           this.lastCell = args;
         }
@@ -332,8 +341,8 @@ export class BlocklyWidget extends Widget {
       ]
     };
     this.workspace = Blockly.inject(
-      "blocklyDivPoly", 
-      { 
+      "blocklyDivPoly",
+      {
         toolbox: starterToolbox,
         plugins: {
           // These are both required.
@@ -344,9 +353,9 @@ export class BlocklyWidget extends Widget {
         },
         move: {
           wheel: true, // Required for wheel scroll to work.
-        }, 
+        },
       });
-    
+
     // Initialize plugin.
     const plugin = new ScrollOptions(this.workspace);
     plugin.init();
@@ -355,20 +364,20 @@ export class BlocklyWidget extends Widget {
     const codeGenListener = (e: Blockly.Events.Abstract): void => {
       if (this.workspace?.isDragging()) return; // Don't update while changes are happening.
       if (!this.codeGenBlockEvents.has(e.type)) return; //Don't update for all events, only specific events 
-      if (e.type === Blockly.Events.FINISHED_LOADING ) this.deserializingFlag = false; //Update deserialization flag
+      if (e.type === Blockly.Events.FINISHED_LOADING) this.deserializingFlag = false; //Update deserialization flag
       if (this.deserializingFlag) return; //Don't update while we are deserializing
-      
+
       // write code to active cell
       this.BlocksToCode(this.notebooks.activeCell, false);
 
       // experimental: execute code as well - only if this is not an intelliblock to avoid infinite loop
-      if( this.doAutoCodeExecution && e.group != "INTELLISENSE" ) {
+      if (this.doAutoCodeExecution && e.group != "INTELLISENSE") {
         // && e.group != "INTELLISENSE" && e.type == "change" && (<Blockly.Events.BlockChange>e).name != "MEMBER"){
         let changeEvent = e as BlockChange;
-        if( changeEvent.oldValue != "" ) {
+        if (changeEvent.oldValue != "") {
           let code_to_execute = this.toolbox?.BlocksToCode() ?? "";
-          if( code_to_execute != "" ) {
-            this.notebooks.currentWidget?.sessionContext.session?.kernel?.requestExecute({code: code_to_execute});
+          if (code_to_execute != "") {
+            this.notebooks.currentWidget?.sessionContext.session?.kernel?.requestExecute({ code: code_to_execute });
             this.LogToConsole("auto executing the following code:\n" + code_to_execute + "\n");
           }
         }
@@ -453,14 +462,14 @@ export class BlocklyWidget extends Widget {
         // put list of blocks in metadata
         //save to metadata
         // cell.model.getMetadata()
-        cell.model.setMetadata("user_code",code);
+        cell.model.setMetadata("user_code", code);
         cell.model.setMetadata("user_blocks_xml", blocks_xml);
         // we extract block type from XML b/c JSON seems to ignore intelliblocks
-        if(blocks_xml) {
+        if (blocks_xml) {
           // note this approach does not extract intelliblock parameters, just the unparameterized block
           let blocks = Array.from(blocks_xml.matchAll(/block type="([^"]+)"/gm), m => m[1]);
           cell.model.setMetadata("user_blocks", blocks);
-        }      
+        }
       }
     }
     else {
@@ -496,6 +505,18 @@ export class BlocklyWidget extends Widget {
       }
     }
   };
+
+  ExplainError() : void {
+    this.LogToConsole("ExplainError called");
+  }
+
+  ExplainCode() : void {
+    this.LogToConsole("ExplainCode called");
+  }
+
+  NextStepHint() : void {
+    this.LogToConsole("NextStepHint called");
+  }
 
 } //end BlocklyWidget
 
@@ -602,14 +623,29 @@ export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPane
   return true;
 };
 
+
+/**
+ * ID for the plugin; a special naming convention is required for using settings
+ */
+const PLUGIN_ID = 'jupyterlab-blockly-polyglot-extension:blockly-polyglot';
+
+/**
+ * LLM commands, crossref with blockly-polyglot.json
+ */
+const CommandIds = {
+  explainError: "toolbar-button:explain-error",
+  explainCode: "toolbar-button:explain-code",
+  nextStepHint: "toolbar-button:next-step-hint"
+};
+
 /**
  * Plugin definition for Jupyter; makes use of BlocklyWidget
  */
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: 'jupyterlab_blockly_polyglot_extension',
+  id: PLUGIN_ID, //'jupyterlab_blockly_polyglot_extension',
   autoStart: true,
-  requires: [ICommandPalette, INotebookTracker, ILayoutRestorer],
-  activate: (app: JupyterFrontEnd, palette: ICommandPalette, notebooks: INotebookTracker, restorer: ILayoutRestorer) => {
+  requires: [ICommandPalette, INotebookTracker, ILayoutRestorer, ISettingRegistry],
+  activate: (app: JupyterFrontEnd, palette: ICommandPalette, notebooks: INotebookTracker, restorer: ILayoutRestorer, settings: ISettingRegistry) => {
     console.log("jupyterlab_blockly_polyglot_extension: activated");
 
     //Create a blockly widget and place inside main area widget
@@ -650,6 +686,37 @@ const plugin: JupyterFrontEndPlugin<void> = {
     //Add command to command palette
     palette.addItem({ command: "blockly_polyglot:open", category: 'Blockly' });
 
+    //add llm commands
+    app.commands.addCommand(CommandIds.explainCode, {
+      icon: explainCodeIcon,
+      caption: 'Explain code',
+      execute: () => {
+        blocklyWidget.ExplainCode();
+        // app.commands.execute('notebook:run-cell');
+      },
+      isVisible: () => notebooks.activeCell?.model.type === 'code'
+    });
+
+    app.commands.addCommand(CommandIds.explainError, {
+      icon: explainErrorIcon,
+      caption: 'Explain error',
+      execute: () => {
+        blocklyWidget.ExplainError();
+        // app.commands.execute('notebook:run-cell');
+      },
+      isVisible: () => notebooks.activeCell?.model.type === 'code'
+    });
+
+    app.commands.addCommand(CommandIds.nextStepHint, {
+      icon: nextStepHintIcon,
+      caption: 'Next step hint',
+      execute: () => {
+        blocklyWidget.NextStepHint();
+        // app.commands.execute('notebook:run-cell');
+      },
+      isVisible: () => notebooks.activeCell?.model.type === 'code'
+    });
+
     //----------------------
     // Process query string
     //----------------------
@@ -677,7 +744,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
       //TODO set up logging with this url
     }
 
-  }
-};
+    //Load user settings
+    let GEMINI_API_KEY = null;
+    function loadSetting(setting: ISettingRegistry.ISettings): void {
+      // Read the settings and convert to the correct type (composite if there is a default)
+      GEMINI_API_KEY = setting.get('GEMINI_API_KEY').composite as string;
+      console.log(`jupyterlab_blockly_polyglot_extension: GEMINI_API_KEY is ${GEMINI_API_KEY != null && GEMINI_API_KEY != "" ? "found" : "not found"}`);
+    }
+
+    //Wait for app and settings to be ready; the extension example does this
+    Promise.all([app.restored, settings.load(PLUGIN_ID)])
+      .then(([, setting]) => {
+        // Read the settings
+        loadSetting(setting);
+
+        // Listen for setting changes
+        setting.changed.connect(loadSetting);
+      }); //end promise all
+  } //end activate
+}; //end plugin
 
 export default plugin;
