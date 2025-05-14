@@ -95,7 +95,6 @@
         "stylelint-csstree-validator": "^3.0.0",
         "stylelint-prettier": "^4.0.0",
         "typescript": "~5.0.2",
-        "util": "^0.12.5",
         "yjs": "^13.5.0"
     },
     "sideEffects": [
