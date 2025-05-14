@@ -66,6 +66,7 @@
         "@jupyterlab/settingregistry": "^4.4.2",
         "@lumino/widgets": "^2.6.0",
         "blockly": "^11.2.1",
+        "diff": "^8.0.1",
         "mime": "^4.0.7"
     },
     "devDependencies": {
@@ -94,6 +95,7 @@
         "stylelint-csstree-validator": "^3.0.0",
         "stylelint-prettier": "^4.0.0",
         "typescript": "~5.0.2",
+        "util": "^0.12.5",
         "yjs": "^13.5.0"
     },
     "sideEffects": [
