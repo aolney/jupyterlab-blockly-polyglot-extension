@@ -641,7 +641,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         };
         pythonGenerator.forBlock[blockName] = ((block: Blockly.Block, generator): [string, number] | string => {
             let args: string = generator.valueToCode(block, "x", Order.MEMBER);
-            let cleanArgs = args.replace("^\\[|\\]$", "");
+            let cleanArgs = args.replace(/^\\[|\\]$/g, "");
             let code = functionStr + "(" + cleanArgs + ")";
             return [code, Order.FUNCTION_CALL];
         });
