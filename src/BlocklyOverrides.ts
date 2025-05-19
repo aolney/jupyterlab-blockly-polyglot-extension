@@ -48,7 +48,7 @@ export function dropdownCreateOverride(this: Blockly.FieldVariable): Blockly.Men
 
     if (Blockly.Msg['DELETE_VARIABLE']) {
         options.push([
-        Blockly.Msg['DELETE_VARIABLE'].replace('%1', name),
+        Blockly.Msg['DELETE_VARIABLE'].replaceAll('%1', name),
         // internalConstants.DELETE_VARIABLE_ID,
         'DELETE_VARIABLE_ID',
         ]);
