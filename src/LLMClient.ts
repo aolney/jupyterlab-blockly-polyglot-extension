@@ -20,8 +20,8 @@ async function llm_request(api_key: string, prompt: string) {
     //alternatively could stream response in chunks, see https://ai.google.dev/gemini-api/docs/text-generation#streaming-responses
 }
 
-export async function llm_explain_error(api_key: string, code: string, error_message: string) {
-    let prompt = code + "\n\n" + "Why do I get:\n" + error_message;
+export async function llm_explain_error(api_key: string, code: string,  markdown_instructions: string, error_message: string) {
+    let prompt = markdown_instructions + "\n\n" + code + "\n\n" + "In simple terms, why do I get:\n" + error_message + "\n\n" + "Give a brief answer.";
     return llm_request(api_key, prompt);
 }
 
@@ -31,7 +31,7 @@ export async function llm_next_step_hint(api_key: string, code: string, markdown
 }
 
 export async function llm_explain_code(api_key: string, code: string) {
-    let prompt = "Explain this code:" + "\n\n" + code;
+    let prompt = "In simple terms, explain this code:" + "\n\n" + code + "\n\n" + "Give a brief answer.";
     return llm_request(api_key, prompt);
 }
 

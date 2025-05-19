@@ -496,8 +496,9 @@ export class BlocklyWidget extends Widget {
    * Select how blocks will be deserialized from code
    */
   DeserializeBlocksFromXMLSelector(): void {
-    this.DeserializeBlocksFromXMLWithDiffs();
-    // this.DeserializeBlocksFromXML();
+    // NOTE: diffs feature is buggy/experimental
+    // this.DeserializeBlocksFromXMLWithDiffs();
+    this.DeserializeBlocksFromXML();
   }
 
   /**
@@ -776,6 +777,31 @@ export class BlocklyWidget extends Widget {
     });
   }
 
+  getPreviousMarkdownInstructions() : string {
+    //get markdown instructions of the nearest preceding markdown cell
+    let markdown_instructions = "";
+    //traverse cells from the beginning
+    let cells = this.notebooks.currentWidget?.model?.cells;
+    if(this.notebooks.activeCell && cells){
+      let last_markdown_cell = null;
+      //find the last markdown cell before the active cell
+      for( let i = 0; i < cells.length; i++ ){
+        let cell = cells.get(i);
+        if( cell.sharedModel.cell_type === 'markdown') {
+          last_markdown_cell = cell;
+        }
+        if( cell == this.notebooks.activeCell.model ){
+          break;
+        }
+      }
+      //set the instructions to this cell's contents
+      if(last_markdown_cell){
+        markdown_instructions = last_markdown_cell.sharedModel.getSource();
+      }
+    }
+    return markdown_instructions;
+  }
+
   ExplainError(): void {
     // this.LogToConsole("ExplainError called");
     if (this.notebooks.activeCell) {
@@ -787,7 +813,9 @@ export class BlocklyWidget extends Widget {
       let error = output_model.toJSON();
       let error_message = `${error.ename?.toString()}\n${error.traceback?.toString()}`;
 
-      llm_explain_error(this.llm_api_key, code, error_message)
+      let markdown_instructions = this.getPreviousMarkdownInstructions();
+
+      llm_explain_error(this.llm_api_key, code, markdown_instructions, error_message)
         .then<any>((reply): void => this.showLLMReply( reply, 'Explanation of Error'))
         .catch(error => window.alert(error));
     }
@@ -809,29 +837,9 @@ export class BlocklyWidget extends Widget {
     // this.LogToConsole("NextStepHint called");
     if (this.notebooks.activeCell) {
       let code: string = this.notebooks.activeCell.model.sharedModel.getSource();
-      code = this.cleanCode(code);
+      code = this.cleanCode(code);      
 
-      //get markdown instructions of the nearest preceding markdown cell
-      let markdown_instructions = "";
-      //traverse cells from the beginning
-      let cells = this.notebooks.currentWidget?.model?.cells;
-      if(cells){
-        let last_markdown_cell = null;
-        //find the last markdown cell before the active cell
-        for( let i = 0; i < cells.length; i++ ){
-          let cell = cells.get(i);
-          if( cell.sharedModel.cell_type === 'markdown') {
-            last_markdown_cell = cell;
-          }
-          if( cell == this.notebooks.activeCell.model ){
-            break;
-          }
-        }
-        //set the instructions to this cell's contents
-        if(last_markdown_cell){
-          markdown_instructions = last_markdown_cell.sharedModel.getSource();
-        }
-      }
+      let markdown_instructions = this.getPreviousMarkdownInstructions();
 
       llm_next_step_hint(this.llm_api_key, code, markdown_instructions)
         .then<any>((reply): void => this.showLLMReply( reply, 'Hint on the Next Step'))
