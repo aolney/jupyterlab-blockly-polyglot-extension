@@ -15,6 +15,7 @@ import { CommandRegistry } from "@lumino/commands";
 import { IToolbox } from "./AbstractToolbox";
 import { PythonToolbox } from "./PythonToolbox";
 import { RToolbox } from "./RToolbox";
+import {getLLMReactComponent} from "./LLMReactComponent";
 import { llm_explain_code, llm_explain_error, llm_next_step_hint } from './LLMClient';
 import { explainCodeIcon, explainErrorIcon as explainErrorIcon, nextStepHintIcon } from './LLMClient';
 import { BlockChange } from 'blockly/core/events/events_block_change';
@@ -772,7 +773,7 @@ export class BlocklyWidget extends Widget {
     showDialog(
     {
         title: title,
-        body:  html,
+        body:  getLLMReactComponent(html),
         hasClose: true
     });
   }

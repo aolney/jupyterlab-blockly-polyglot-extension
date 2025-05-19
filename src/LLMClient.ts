@@ -65,3 +65,4 @@ export const nextStepHintIcon = new LabIcon({
 <path d="M16 32h32M32 16l16 16-16 16" stroke="#007BFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`
 });
+

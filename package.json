@@ -68,7 +68,8 @@
         "blockly": "^11.2.1",
         "diff": "^8.0.1",
         "markdown-it": "^14.1.0",
-        "mime": "^4.0.7"
+        "mime": "^4.0.7",
+        "react": "^19.1.0"
     },
     "devDependencies": {
         "@jupyterlab/builder": "^4.4.2",
