@@ -230,8 +230,6 @@ export class BlocklyWidget extends Widget {
         this.toolbox.UpdateToolbox();
 
         this.toolbox?.DoFinalInitialization();
-        // TODO test; greys out everything
-        // this.toolbox.GreyOutBlocks([]);
       }
     }
 
@@ -403,7 +401,6 @@ export class BlocklyWidget extends Widget {
     this.workspace.addChangeListener(codeGenListener);
 
     const logListener = (e: Blockly.Events.Abstract): void => {
-      //TODO reconsider how blocksRendered is working
       //this fires when user creates blocks AND when blocks are deserialized
       if (e.type === "create") {
         this.blocksInSyncWithXML = false
@@ -473,13 +470,12 @@ export class BlocklyWidget extends Widget {
         // LogToServer(JupyterLogEntry082720_Create("blocks-to-code", this$.notebooks.activeCell.model.value.text));
         this.blocksInSyncWithXML = true;
 
-        //TODO STOPPED HERE - next do something with metadata
-        // serialize to metadata
+        // EXPERIMENTAL: logging to metadata where user can't see/delete it
         // put code in metadata
-        // put list of blocks in metadata
-        //save to metadata
         cell.model.setMetadata("user_code_from_blocks", code);
+        // serialize blocks to metadata
         cell.model.setMetadata("user_blocks_xml", blocks_xml);
+        // put list of blocks in metadata
         // we extract block type from XML b/c JSON seems to ignore intelliblocks
         if (blocks_xml) {
           // note this approach does not extract intelliblock parameters, just the unparameterized block

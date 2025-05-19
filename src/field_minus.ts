@@ -34,7 +34,6 @@ export function createMinusField(args = undefined) {
  * @private
  */
 function onClick_(minusField: any) {
-  // TODO: This is a dupe of the mutator code, anyway to unify?
   const block = minusField.getSourceBlock();
 
   if (block.isInFlyout) {

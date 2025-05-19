@@ -320,30 +320,6 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
                 "name": "LISTS",
                 "colour": "260"
             },
-            // TODO: color category now throwing error
-            // {
-            //     "kind": "CATEGORY",
-            //     "contents": [
-            //         {
-            //             "kind": "BLOCK",
-            //             "type": "colour_picker"
-            //         },
-            //         {
-            //             "kind": "BLOCK",
-            //             "type": "colour_random"
-            //         },
-            //         {
-            //             "kind": "BLOCK",
-            //             "type": "colour_rgb"
-            //         },
-            //         {
-            //             "kind": "BLOCK",
-            //             "type": "colour_blend"
-            //         }
-            //     ],
-            //     "name": "COLOUR",
-            //     "colour": "20"
-            // },
             {
                 "kind": "CATEGORY",
                 "contents": [
@@ -577,7 +553,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
     }
 
     /**
-     * Create a Blockly/R templated import block: TODO if we make this part of the variable menu, then users will never need to rename variable after using the block
+     * Create a Blockly/R templated import block
      */
     makeImportBlock(blockName: string, labelOne: string): void {
         Blockly.Blocks[blockName] = {

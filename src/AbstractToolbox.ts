@@ -103,20 +103,6 @@ export abstract class AbstractToolbox {
    */
   intellisenseLookup: Map<string, IntellisenseVariable> = new Map<string, IntellisenseVariable>([]);
 
-  // TODO: it seems we don't need these to change across languages because the languages are sufficiently isolated
-  // /**
-  //  * Annotation for selecting property intelliblocks from Blockly. May be set by subclasses for their language suffix
-  //  */
-  // intelliblockPropertyLabel = "varGetProperty"
-  // /**
-  //  * Annotation for selecting method intelliblocks from Blockly. May be set by subclasses for their language suffix
-  //  */
-  // intelliblockMethodLabel = "varDoMethod"
-  // /**
-  //  * Annotation for selecting constructor intelliblocks from Blockly. May be set by subclasses for their language suffix
-  //  */
-  // intelliblockConstructorLabel = "varCreateObject"
-
   /**
    * Intitialize using notebook kernel and blockly workspace; calls initialize generator
    * @param notebooks 
@@ -549,15 +535,15 @@ export abstract class AbstractToolbox {
         xml_4.appendChild(Blockly.Variables.generateVariableFieldDom(lastVarFieldXml));
         xmlList.push(xml_4);
       }
-      //TODO: Make one block all variables (with a dropdown) rather than a new block created for each variable
+
       if (Blockly.Blocks.variables_get) {
-        for (const variableModel of variableModelList) {
           const xml_5: Element = Blockly.utils.xml.createElement("block");
           xml_5.setAttribute("type", "variables_get");
           xml_5.setAttribute("gap", "8");
-          xml_5.appendChild(Blockly.Variables.generateVariableFieldDom(variableModel));
+          //last get block by default will show most recently created variable name; see 5/19/25 commit for creating 
+          //a get block for each variable
+          xml_5.appendChild(Blockly.Variables.generateVariableFieldDom(variableModelList[variableModelList.length-1]));
           xmlList.push(xml_5);
-        }
       }
     }
     return xmlList;
@@ -671,7 +657,8 @@ export abstract class AbstractToolbox {
   /**
    * A mutator for dynamic arguments. A block using this mutator must have a dummy called
    *  "EMPTY" and must register this mutator.
-   * TODO: use new Blockly JSON-based mutator interface
+   * NOTE: unclear if we can use new Blockly JSON-based mutator interface without 
+   * extensive work for intelliblocks and other custom block
    * @param this 
    * @param mutatorName 
    * @param startCount 
@@ -1019,38 +1006,12 @@ export abstract class AbstractToolbox {
   }
 
   /**
+   * EXPERIMENTAL
    * Given a list of blocks to ignore, grey out all other blocks. Provides hint to students on what blocks they need and what they can ignore.
    * ASSUMES A ONE LEVEL CATEGORY STRUCTURE
    * @param ignore_blocks 
    */
   GreyOutBlocks(ignore_blocks: string[]): void {
-
-    // ATTEMPT1: looks like colors don't live in the toolbox but on the blocks themselves
-    // //Deep copy our toolbox definition
-    // const newToolboxDefinition : Blockly.utils.toolbox.ToolboxInfo = JSON.parse(JSON.stringify(this.toolboxDefinition));
-
-    // //Traverse the definition and selectively update color of blocks
-    // let categoryList = (newToolboxDefinition as Blockly.utils.toolbox.ToolboxInfo).contents as Blockly.utils.toolbox.StaticCategoryInfo[];
-    // for( let category of categoryList){
-    //   let blockList = category.contents as Blockly.utils.toolbox.StaticCategoryInfo[];
-    //     if(blockList) {
-    //     for( let block of blockList){
-    //       // if the block is not on our ignore list
-    //       if( !ignore_blocks.includes(block.name ) ) {
-    //         block.colour = "#979697";
-    //       }
-    //     }
-    //   }
-    // }
-    // this.UpdateToolbox(newToolboxDefinition);
-
-    // THIS WORKS
-    // TODO: to make this reversible, do the following at initialization
-    // - create two color properties on each block: original color and current color; getColour()
-    // - create an injectColor function that sets block to currentColor using the init approach below
-    // - create a toolbox function that sets currentColor to grey
-    // - create a toolbox function that sets currentColor to original color 
-    //ATTEMPT2: change color on the blocks themselves from Blockly.Blocks
     //Traverse the definition and selectively update color of blocks
     for (let blockName of Object.keys(Blockly.Blocks)) {
       if (!ignore_blocks.includes(blockName)) {
@@ -1063,10 +1024,7 @@ export abstract class AbstractToolbox {
         block["init"] =
           function () {
             //keep the old init
-            // oldInit(); // this.jsonInit is not a function
-            // oldInit.call(); //this.jsonInit is not a function
             oldInit.call(this);
-            // oldInit.apply(block); //this.jsonInit is not a function
 
             //change the color to grey
             this.setColour("#979697");
@@ -1075,29 +1033,7 @@ export abstract class AbstractToolbox {
         // console.log(initString);
       }
     }
-
-    // //ATTEMPT3: modify the workspace flyout
-    // let flyout = this.workspace?.getFlyout();// as Blockly.HorizontalFlyout;
-    // if(flyout){
-    //   flyout.show( this.toolboxDefinition as Blockly.utils.toolbox.FlyoutDefinition) ;
-    //   let contents = flyout.getContents();
-    //   console.log(contents);
-    // }
-
-    //ATTEMPT4: use eval
-    // block.init = oldInit;
-
-    // get the source of the function
-    // let initString = block["init"].toString();
-    // // chop off the closing brace, add a new line, and close
-    // let newInitString = initString.slice(0, -1) + ";this.setColour('#979697')" + "}"
-    // // update with actual function
-    // let newInit =  eval(newInitString);
-    // block["init"] = newInit;
-
     this.UpdateToolbox();
-
-
   }
 
   /**

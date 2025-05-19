@@ -352,30 +352,6 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 "name": "LISTS",
                 "colour": "260"
             },
-            // TODO: there is a problem with this blocks; toolbox search extension fails to initialize if they are present
-            // {
-            //     "kind": "CATEGORY",
-            //     "contents": [
-            //         {
-            //             "kind": "BLOCK",
-            //             "type": "colour_picker"
-            //         },
-            //         {
-            //             "kind": "BLOCK",
-            //             "type": "colour_random"
-            //         },
-            //         {
-            //             "kind": "BLOCK",
-            //             "type": "colour_rgb"
-            //         },
-            //         {
-            //             "kind": "BLOCK",
-            //             "type": "colour_blend"
-            //         }
-            //     ],
-            //     "name": "COLOUR",
-            //     "colour": "20"
-            // },
             {
                 "kind": "CATEGORY",
                 "contents": [
@@ -596,7 +572,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
     }
 
     /**
-     * Create a Blockly/Python templated import block: TODO if we make this part of the variable menu, then users will never need to rename variable after using the block
+     * Create a Blockly/Python templated import block
      */
     makeImportBlock(blockName: string, labelOne: string, labelTwo: string): void {
         Blockly.Blocks[blockName] = {

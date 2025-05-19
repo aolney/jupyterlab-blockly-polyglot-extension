@@ -34,7 +34,6 @@ export function createPlusField(args = undefined) {
  * @private
  */
 function onClick_(plusField: any) {
-  // TODO: This is a dupe of the mutator code, anyway to unify?
   const block = plusField.getSourceBlock();
 
   if (block.isInFlyout) {
