@@ -16,6 +16,7 @@ import { IToolbox } from "./AbstractToolbox";
 import { PythonToolbox } from "./PythonToolbox";
 import { RToolbox } from "./RToolbox";
 import {getLLMReactComponent} from "./LLMReactComponent";
+import { LogToServer, createJupyterLogEntry, createBlocklyLogEntry, set_id, set_log_url } from './Logging';
 import { llm_explain_code, llm_explain_error, llm_next_step_hint } from './LLMClient';
 import { explainCodeIcon, explainErrorIcon as explainErrorIcon, nextStepHintIcon } from './LLMClient';
 import { BlockChange } from 'blockly/core/events/events_block_change';
@@ -274,13 +275,13 @@ export class BlocklyWidget extends Widget {
       switch (messageType) {
         case "execute_input": {
           this.LogToConsole(`kernel '${sender.name}' executed code, updating intellisense`);
-          // LogToServer(JupyterLogEntry082720_Create("execute-code", args.content.code));
+          LogToServer(createJupyterLogEntry("execute-code", args.content));
           this.toolbox?.UpdateAllIntellisense();
           break;
         }
         case "error": {
           this.LogToConsole("kernel reports error executing code")
-          // LogToServer(JupyterLogEntry082720_Create("execute-code-error", JSON.stringify(args.content)));
+          LogToServer(createJupyterLogEntry("execute-code-error", args.content));
           break;
         }
         default: 0;
@@ -297,7 +298,7 @@ export class BlocklyWidget extends Widget {
   onActiveCellChanged(): (arg0: INotebookTracker, arg1: Cell<ICellModel> | null) => boolean {
     return (sender: INotebookTracker, args: Cell<ICellModel> | null): boolean => {
       if (args) {
-        // LogToServer(JupyterLogEntry082720_Create("active-cell-change", args.node.outerText));
+        LogToServer(createJupyterLogEntry("active-cell-change", args.node.outerText));
         const syncCheckbox: HTMLInputElement | null = document.getElementById("syncCheckboxPoly") as HTMLInputElement;
         const autosaveCheckbox: HTMLInputElement | null = document.getElementById("autosaveCheckbox") as HTMLInputElement;
 
@@ -409,7 +410,7 @@ export class BlocklyWidget extends Widget {
       if (e.type === "finished_loading") {
         this.blocksInSyncWithXML = true
       }
-      // LogToServer(BlocklyLogEntry082720_Create<Blockly_Events_Abstract__Class>(e.type, e));
+      LogToServer(createBlocklyLogEntry(e.type, e));
     };
     this.workspace.removeChangeListener(logListener);
     this.workspace.addChangeListener(logListener);
@@ -467,7 +468,7 @@ export class BlocklyWidget extends Widget {
         let cell_contents = code + "\n#" + blocks_xml;
         this.notebooks.activeCell?.model.sharedModel.setSource(cell_contents);
         this.LogToConsole(`${userInitated ? 'user' : 'auto'} wrote to cell\n` + code + "\n");
-        // LogToServer(JupyterLogEntry082720_Create("blocks-to-code", this$.notebooks.activeCell.model.value.text));
+        LogToServer(createJupyterLogEntry("blocks-to-code", this.notebooks?.activeCell?.model.sharedModel.source));
         this.blocksInSyncWithXML = true;
 
         // EXPERIMENTAL: logging to metadata where user can't see/delete it
@@ -694,7 +695,7 @@ export class BlocklyWidget extends Widget {
           }
 
 
-          // LogToServer(JupyterLogEntry082720_Create("xml-to-blocks", xmlString));
+          LogToServer(createJupyterLogEntry("xml-to-blocks", xmlString));
         } catch (e: any) {
           this.deserializingFlag = false;
           window.alert("Unable to perform \'Code to Blocks\'. Specific error message is: " + e.message);
@@ -727,7 +728,7 @@ export class BlocklyWidget extends Widget {
 
           this.toolbox?.DecodeWorkspace(xmlString)
 
-          // LogToServer(JupyterLogEntry082720_Create("xml-to-blocks", xmlString));
+          LogToServer(createJupyterLogEntry("xml-to-blocks", xmlString));
         } catch (e: any) {
           this.deserializingFlag = false;
           window.alert("Unable to perform \'Code to Blocks\': XML is either invald or renames existing variables. Specific error message is: " + e.message);
@@ -934,7 +935,7 @@ export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPane
   const blocklyWidget: BlocklyWidget = this;
   if (sender.currentWidget != null) {
     this.LogToConsole("notebook changed to " + sender.currentWidget.context.path);
-    // LogToServer(JupyterLogEntry082720_Create("notebook-changed", notebook.context.path));
+    LogToServer(createJupyterLogEntry("notebook-changed", sender.currentWidget.context.path));
     let connection_status = sender.currentWidget.sessionContext.kernelChanged.connect(onKernelChanged, blocklyWidget);
     this.LogToConsole(`kernelChanged event is ${connection_status ? "now" : "already"} connected`);
 
@@ -1018,7 +1019,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       caption: 'Explain code',
       execute: () => {
         blocklyWidget.ExplainCode();
-        // app.commands.execute('notebook:run-cell');
       },
       isVisible: () => notebooks.activeCell?.model.type === 'code'
     });
@@ -1028,7 +1028,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       caption: 'Explain error',
       execute: () => {
         blocklyWidget.ExplainError();
-        // app.commands.execute('notebook:run-cell');
       },
       isVisible: () => notebooks.activeCell?.model.type === 'code'
     });
@@ -1038,7 +1037,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       caption: 'Next step hint',
       execute: () => {
         blocklyWidget.NextStepHint();
-        // app.commands.execute('notebook:run-cell');
       },
       isVisible: () => notebooks.activeCell?.model.type === 'code'
     });
@@ -1046,7 +1044,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     //----------------------
     // Process query string
     //----------------------
-    const searchParams: any = new URLSearchParams(window.location.search);
+    const searchParams = new URLSearchParams(window.location.search);
 
     //If query string has bl=1, trigger the open command once the application is ready
     if (searchParams.get("bl") == "1") {
@@ -1061,13 +1059,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
     }
 
     //If query string has id=, set up logging with this id
-    if (searchParams.get("id") == "1") {
-      //TODO set up logging with this id
+    let id = searchParams.get("id");
+    if ( id ) {
+      set_id( id );
     }
 
     //If query string has log=, set up logging with this log endpoint url
-    if (searchParams.get("log") == "1") {
-      //TODO set up logging with this url
+    let log_url = searchParams.get("log");
+    if ( log_url ) {
+      set_log_url( log_url );
     }
 
     //Load user settings
