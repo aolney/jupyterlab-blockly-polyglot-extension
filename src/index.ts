@@ -889,7 +889,7 @@ export function attachWidget(app: JupyterFrontEnd, notebooks: INotebookTracker, 
  */
 export const runCommandOnNotebookChanged = function (this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean {
   if (sender.currentWidget != null) {
-    this.LogToConsole("notebook changed, autorunning blockly polyglot command");
+    console.log("notebook changed, autorunning blockly polyglot command");
     this.commands.execute("blockly_polyglot:open");
   }
   return true;

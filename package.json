@@ -1,6 +1,6 @@
 {
     "name": "jupyterlab-blockly-polyglot-extension",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "description": "A JupyterLab extension implementing a Blockly palette for multiple programming languages.",
     "keywords": [
         "jupyter",
