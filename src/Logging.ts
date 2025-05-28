@@ -59,12 +59,34 @@ export function set_id(id: string) {
     hashedIdOption = createSHA256Hash(id);
 }
 
-function filterJson(o: any): string {
+function filterJson(o: any): any {
     if (o?.object?.element?.toString().indexOf("drag") === 0) {
         o.object.newValue = undefined;
         o.object.oldValue = undefined;
     }
     return o;
+}
+
+/**
+ * Stringify even with circular references.
+ * See https://www.geeksforgeeks.org/what-is-typeerror-converting-circular-structure-to-json/
+ * @param obj 
+ * @returns 
+ */
+function safeStringify( obj : object) : string {
+    const res = JSON.stringify(obj, (key, value) => {
+        if (typeof value === 'object' && value !== null) {
+            if (value instanceof Array) {
+                return value.map(
+                    (item, index) => 
+                    (index === value.length - 1 ? 
+                        'circular reference' : item));
+            }
+            return { ...value, circular: 'circular reference' };
+        }
+        return value;
+    });
+    return res;
 }
 
 /**
@@ -108,7 +130,8 @@ export function LogToServer(logObject: any): void {
             body: JSON.stringify({
                 username: id,
                 //base64 encode the payload because it can have all kinds of craziness inside it
-                json: btoa(JSON.stringify(filterJson(logObject)))
+                json: btoa(safeStringify(filterJson(logObject)))
+                // json: btoa(JSON.stringify(filterJson(logObject)))
 
             })
         }).then(response => {
