@@ -74,19 +74,26 @@ function filterJson(o: any): any {
  * @returns 
  */
 function safeStringify( obj : object) : string {
-    const res = JSON.stringify(obj, (key, value) => {
-        if (typeof value === 'object' && value !== null) {
-            if (value instanceof Array) {
-                return value.map(
-                    (item, index) => 
-                    (index === value.length - 1 ? 
-                        'circular reference' : item));
+    let res = "";
+    try {
+        res = JSON.stringify(obj, (key, value) => {
+            if (typeof value === 'object' && value !== null) {
+                if (value instanceof Array) {
+                    return value.map(
+                        (item, index) => 
+                        (index === value.length - 1 ? 
+                            'circular reference' : item));
+                }
+                return { ...value, circular: 'circular reference' };
             }
-            return { ...value, circular: 'circular reference' };
-        }
-        return value;
-    });
-    return res;
+            return value;
+        });
+        return res;
+    //return empty string on error
+    } catch(e){
+        console.log("!!! jupyterlab_blockly_polyglot_extension: unable to stringify JSON for logging; creating empty JSON payload");
+        return res;
+    }
 }
 
 /**
