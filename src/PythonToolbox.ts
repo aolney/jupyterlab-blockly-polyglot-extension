@@ -445,7 +445,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         // let debug = this.function_regex.test(info);
         // debug.valueOf();
         // functions have function type; we ignore signature/method/parameter matches because numpy seems to skip these in some cases
-        return this.function_regex.test(info); 
+        return this.function_regex.test(info);
         // old metho
         // return (info.includes("Signature:") && info.includes("function")) || (info.includes("Signature:") && info.includes("method"));
     }
@@ -462,7 +462,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         // let debug = this.class_regex.test(info);
         // debug.valueOf();
         // constructors have signatures but are not functions
-        return info.includes("ignature:") && !this.function_regex.test(info);  
+        return info.includes("ignature:") && !this.function_regex.test(info);
         // old method
         // return info.includes("signature:") && info.includes("class");
     }
@@ -662,6 +662,24 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
             pythonGenerator.nameDB_.reset();
             return ((("\n" + imports) + ("\n" + functions)) + "\n\n") + code;
         });
+
+        // Auto execution has problematic behavior for blockly variables_set, i.e. df = 0 when df has been defined
+        // so disable code generation when variables_set is not connected?
+        pythonGenerator.forBlock['variables_set'] = ((block: Blockly.Block, generator): string => {
+            const varName = generator.getVariableName(block.getFieldValue('VAR'));
+            const argument0 = generator.valueToCode(block, 'VALUE', Order.NONE);
+            //blocks are connected
+            if(argument0){
+                return varName + ' = ' + argument0 + '\n';
+            }
+            //set without anything connected, generate nothing
+            else {
+                // could also return a commented variable =, e.g. `#${varName}=`, but that might confuse people
+                return `# unconnected 'set ${varName} to' block`;
+                // return nothin
+                // return "";
+            }
+        })
 
         //-----------------
         //define new blocks
@@ -992,7 +1010,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 const button = document.createElement('button');
                 button.setAttribute('text', "Import...");
                 button.setAttribute('callbackKey', 'CREATE_VARIABLE');
-                
+
                 //chain two modal windows: one for library name and one for alias/element name
                 (workspace as Blockly.WorkspaceSvg).registerButtonCallback('CREATE_VARIABLE', (button: any): void => { //function (button) {
                     //get library name first
@@ -1005,14 +1023,14 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                 //blocks appear if an import label has been created; by default show the most recent label
                 const variableModelList: Blockly.VariableModel[] = workspace.getVariablesOfType("");
                 if (variableModelList.length > 0) {
-                    const lastVariableModel : Blockly.VariableModel = variableModelList[variableModelList.length - 1];
+                    const lastVariableModel: Blockly.VariableModel = variableModelList[variableModelList.length - 1];
                     // add import blocks
                     const importAs: Element = Blockly.utils.xml.createElement("block");
                     importAs.setAttribute("type", "importAs");
                     importAs.setAttribute("gap", Blockly.Blocks.importAs ? "8" : "24");
                     // append field label first
                     let asField = Blockly.utils.xml.createElement('field');
-                    asField.setAttribute('name','libraryName');
+                    asField.setAttribute('name', 'libraryName');
                     let asName = Blockly.utils.xml.createTextNode(this.temp);
                     asField.appendChild(asName);
                     importAs.appendChild(asField);
@@ -1023,7 +1041,7 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
                     importFrom.setAttribute("type", "importFrom");
                     importFrom.setAttribute("gap", Blockly.Blocks.importFrom ? "8" : "24");
                     let fromField = Blockly.utils.xml.createElement('field');
-                    fromField.setAttribute('name','libraryName');
+                    fromField.setAttribute('name', 'libraryName');
                     let fromName = Blockly.utils.xml.createTextNode(this.temp);
                     fromField.appendChild(fromName);
                     importFrom.appendChild(fromField);
