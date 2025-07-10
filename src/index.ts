@@ -32,9 +32,8 @@ import {
 } from '@blockly/plugin-scroll-options';
 import { ChangeObject, diffLines } from 'diff';
 import markdownit from 'markdown-it';
+// import { block } from 'blockly/core/tooltip';
 // import { error } from 'console';
-
-// TODO: seems like logging is not wired up throughout
 
 //for converting LLM markdown to HTML
 const markdown_it = markdownit()
@@ -271,17 +270,29 @@ export class BlocklyWidget extends Widget {
    */
   onKernelExecuted(): ((arg0: Kernel.IKernelConnection, arg1: KernelMessage.IIOPubMessage<any>) => boolean) {
     return (sender: Kernel.IKernelConnection, args: KernelMessage.IIOPubMessage<any>): boolean => {
+      //check for magic string in code; if present, do not log to server
+      let shouldLog = true;
+      if( 'code' in args.content ){
+        let code : string = args.content.code as string ?? "";
+        if( code.includes("@autoblockstocode@")){
+          shouldLog = false;
+        }
+      }
       const messageType: string = args.header.msg_type.toString();
       switch (messageType) {
         case "execute_input": {
           this.LogToConsole(`kernel '${sender.name}' executed code, updating intellisense`);
-          LogToServer(createJupyterLogEntry("execute-code", args.content));
+          if( shouldLog ){
+            LogToServer(createJupyterLogEntry("execute-code", args.content));
+          }
           this.toolbox?.UpdateAllIntellisense();
           break;
         }
         case "error": {
           this.LogToConsole("kernel reports error executing code")
-          LogToServer(createJupyterLogEntry("execute-code-error", args.content));
+          if( shouldLog ){
+            LogToServer(createJupyterLogEntry("execute-code-error", args.content));
+          }
           break;
         }
         default: 0;
@@ -372,7 +383,7 @@ export class BlocklyWidget extends Widget {
         },
       });
 
-    // Initialize plugin.
+    // Initialize scroll options plugin.
     const plugin = new ScrollOptions(this.workspace);
     plugin.init();
 
@@ -393,12 +404,18 @@ export class BlocklyWidget extends Widget {
         if (changeEvent.oldValue != "") {
           let code_to_execute = this.toolbox?.BlocksToCode() ?? "";
           if (code_to_execute != "") {
+            // We have a problem here; we need to distinguish between autoexecutions and user executions for logging purposes
+            // We solve this in a hacky way by passing this flag into BlocksToCode, which in the autoexecution case, appends a comment + magic string for us
+            code_to_execute = this.toolbox?.MarkCodeAsAutoGen(code_to_execute) ?? "";
             this.notebooks.currentWidget?.sessionContext.session?.kernel?.requestExecute({ code: code_to_execute });
+            // It does not appear we can pass in metadata and get that back out in onKernelExecuted, which would be handy for distinguishing between user executions and autoexecutions
+            // this.notebooks.currentWidget?.sessionContext.session?.kernel?.requestExecute({ code: code_to_execute },true,{"autoexecute": true});
             this.LogToConsole("auto executing the following code:\n" + code_to_execute + "\n");
           }
         }
       }
     }
+    this.workspace.removeChangeListener(codeGenListener);
     this.workspace.addChangeListener(codeGenListener);
 
     const logListener = (e: Blockly.Events.Abstract): void => {
@@ -414,8 +431,32 @@ export class BlocklyWidget extends Widget {
     };
     this.workspace.removeChangeListener(logListener);
     this.workspace.addChangeListener(logListener);
+
+    //Check if a notebook is already open. If it is, attach to it
+    if(this.notebooks.currentWidget != null){
+      this.attachToNotebook(this.notebooks.currentWidget);
+    }
   }
 
+  /**
+   * Attach to active notebook; typically done on startup or notebook change
+   */
+  attachToNotebook( notebook : NotebookPanel | null):void {
+  if (notebook != null) {
+      this.LogToConsole("notebook changed to " + notebook.context.path);
+      LogToServer(createJupyterLogEntry("notebook-changed", notebook.context.path));
+      let connection_status = notebook.sessionContext.kernelChanged.connect(onKernelChanged, this);
+      this.LogToConsole(`kernelChanged event is ${connection_status ? "now" : "already"} connected`);
+
+      //onKernelChanged will only fire the first time a kernel is loaded
+      //so if a user switches back and forth between notebooks with different kernels that are
+      //already loaded, we need to catch that here to update the toolbox
+      // if the kernel is known, update the toolbox
+      if (notebook.sessionContext?.session?.kernel?.name) {
+        this.GetToolBox(notebook.sessionContext?.session?.kernel?.name);
+      }
+    }
+  }
   /**
    * Widget has been resized; update UI 
    */
@@ -462,8 +503,8 @@ export class BlocklyWidget extends Widget {
       // if user called blocks to code on a markdown cell, complain
       if (userInitated && cells.isMarkdownCellModel(cell.model)) {
         window.alert("You are calling \'Blocks to Code\' on a MARKDOWN cell. Select an empty CODE cell and try again.");
-        // if this is a code cell, do blocks to code
-      } else if (cells.isCodeCellModel(cell.model)) {
+        // if this is a code cell and the code is not blank, do blocks to code
+      } else if (cells.isCodeCellModel(cell.model) && code != "") {
         let blocks_xml = this.toolbox?.EncodeWorkspace();
         let cell_contents = code + "\n#" + blocks_xml;
         this.notebooks.activeCell?.model.sharedModel.setSource(cell_contents);
@@ -933,20 +974,21 @@ export function onKernelChanged(this: any, sender: ISessionContext, args: Sessio
  */
 export function onNotebookChanged(this: any, sender: IWidgetTracker<NotebookPanel>, args: NotebookPanel | null): boolean {
   const blocklyWidget: BlocklyWidget = this;
-  if (sender.currentWidget != null) {
-    this.LogToConsole("notebook changed to " + sender.currentWidget.context.path);
-    LogToServer(createJupyterLogEntry("notebook-changed", sender.currentWidget.context.path));
-    let connection_status = sender.currentWidget.sessionContext.kernelChanged.connect(onKernelChanged, blocklyWidget);
-    this.LogToConsole(`kernelChanged event is ${connection_status ? "now" : "already"} connected`);
+  blocklyWidget.attachToNotebook(sender.currentWidget);
+  // if (sender.currentWidget != null) {
+  //   this.LogToConsole("notebook changed to " + sender.currentWidget.context.path);
+  //   LogToServer(createJupyterLogEntry("notebook-changed", sender.currentWidget.context.path));
+  //   let connection_status = sender.currentWidget.sessionContext.kernelChanged.connect(onKernelChanged, blocklyWidget);
+  //   this.LogToConsole(`kernelChanged event is ${connection_status ? "now" : "already"} connected`);
 
-    //onKernelChanged will only fire the first time a kernel is loaded
-    //so if a user switches back and forth between notebooks with different kernels that are
-    //already loaded, we need to catch that here to update the toolbox
-    // if the kernel is known, update the toolbox
-    if (sender.currentWidget.sessionContext?.session?.kernel?.name) {
-      blocklyWidget.GetToolBox(sender.currentWidget.sessionContext?.session?.kernel?.name);
-    }
-  }
+  //   //onKernelChanged will only fire the first time a kernel is loaded
+  //   //so if a user switches back and forth between notebooks with different kernels that are
+  //   //already loaded, we need to catch that here to update the toolbox
+  //   // if the kernel is known, update the toolbox
+  //   if (sender.currentWidget.sessionContext?.session?.kernel?.name) {
+  //     blocklyWidget.GetToolBox(sender.currentWidget.sessionContext?.session?.kernel?.name);
+  //   }
+  // }
   return true;
 };
 

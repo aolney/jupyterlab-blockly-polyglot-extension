@@ -471,6 +471,10 @@ export class PythonToolbox extends AbstractToolbox implements IToolbox {
         return "."
     }
 
+    commentString(): string {
+        return "#"
+    }
+
     GetSafeChildCompletions(parent: IntellisenseEntry, children: string[]): string[] {
         let safeCompletions: string[] = children.filter((s: string) => {
             if (parent.Info.startsWith("Signature: DataFrame")) {

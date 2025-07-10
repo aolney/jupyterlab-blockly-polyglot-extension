@@ -438,6 +438,10 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
         return "::"
     }
 
+    commentString(): string {
+        return "#"
+    }
+
     /**
      * R seems to not need special handling, so no-op
      * @param parent 
@@ -558,7 +562,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
     makeImportBlock(blockName: string, labelOne: string): void {
         Blockly.Blocks[blockName] = {
             init: function () {
-                this.appendDummyInput().appendField(labelOne).appendField(new Blockly.FieldVariable("<select>") as Blockly.Field, "VAR");
+                this.appendDummyInput().appendField(labelOne).appendField(new Blockly.FieldVariable("some library") as Blockly.Field, "libraryName");
                 this.setNextStatement(true);
                 this.setPreviousStatement(true);
                 this.setColour(230);
@@ -567,7 +571,7 @@ export class RToolbox extends AbstractToolbox implements IToolbox {
             },
         };
         // RGenerator[blockName] = ((block: Blockly.Block): string => {
-        rGenerator.forBlock[blockName] = ((block: Blockly.Block, generator :RGenerator): [string, number] | string => {
+        rGenerator.forBlock[blockName] = ((block: Blockly.Block, generator :RGenerator): string | string => {
             let libraryVar = generator.getVariableName(block.getFieldValue("libraryName"));
             let code = "library(" + libraryVar + ")\n";
             return code;
